@@ -1,0 +1,10 @@
+[
+  {
+    "id": "multifieldqa_zh-0003-answer",
+    "score": "semantic",
+    "question": "请只根据 archive context 回答下面的 LongBench 问题。\n只输出最短答案片段，不要解释。\n问题：\n郗鉴拒绝了谁的建议？",
+    "golds": [
+      "郗鉴拒绝了外戚庾亮废王导的建议。"
+    ]
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "id": "multifieldqa_zh-0002-answer",
+    "score": "semantic",
+    "question": "请只根据 archive context 回答下面的 LongBench 问题。\n只输出最短答案片段，不要解释。\n问题：\n二审法院确定了什么样的赔偿金额？",
+    "golds": [
+      "人民币57081.86元。"
+    ]
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "id": "multifieldqa_en-0000-answer",
+    "score": "semantic",
+    "question": "Answer this LongBench question using only the archive context.\nOutput only the shortest answer span. No explanation.\nQuestion:\nWhat is the name of the most active fan club?",
+    "golds": [
+      "South West Ultras fan club."
+    ]
+  }
+]

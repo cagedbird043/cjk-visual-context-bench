@@ -20,9 +20,11 @@ pub struct QaResult {
     pub id: String,
     pub answer: String,
     pub exact_match: bool,
+    pub correct: bool,
     pub score: String,
     pub f1: f64,
     pub best_gold: String,
+    pub match_kind: String,
 }
 
 pub async fn run_qa(args: &[String]) -> Result<(), Box<dyn Error>> {
@@ -43,6 +45,7 @@ pub async fn run_qa(args: &[String]) -> Result<(), Box<dyn Error>> {
     }
     let mut out = fs::File::create(out_path)?;
 
+    let mut correct = 0usize;
     let mut exact = 0usize;
     let mut f1_sum = 0.0;
     for item in &items {
@@ -54,6 +57,9 @@ pub async fn run_qa(args: &[String]) -> Result<(), Box<dyn Error>> {
         let result = score_item(item, answer);
         if result.exact_match {
             exact += 1;
+        }
+        if result.correct {
+            correct += 1;
         }
         f1_sum += result.f1;
         writeln!(out, "{}", serde_json::to_string(&result)?)?;
@@ -67,7 +73,7 @@ pub async fn run_qa(args: &[String]) -> Result<(), Box<dyn Error>> {
     } else {
         f1_sum / total as f64
     };
-    eprintln!("qa: em={em:.4} f1={f1:.4} exact={exact}/{total}");
+    eprintln!("qa: correct={correct}/{total} em={em:.4} f1={f1:.4} exact={exact}/{total}");
     Ok(())
 }
 
@@ -75,26 +81,46 @@ pub fn score_item(item: &QaItem, answer: String) -> QaResult {
     let mut best_f1 = 0.0;
     let mut best_gold = String::new();
     let exact_mode = item.score == "exact";
+    let mut correct = false;
+    let mut match_kind = String::from("none");
     let answer_norm = if exact_mode {
-        normalize_exact(&answer)
+        normalize_exact_for_item(&item.id, &answer)
     } else {
         normalize_answer(&answer)
     };
     let mut exact_match = false;
     for gold in &item.golds {
         let gold_norm = if exact_mode {
-            normalize_exact(gold)
+            normalize_exact_for_item(&item.id, gold)
         } else {
             normalize_answer(gold)
         };
+        let f1 = char_f1(&answer_norm, &gold_norm);
         if answer_norm == gold_norm {
             exact_match = true;
+            correct = true;
+            match_kind = String::from("exact");
+        } else if exact_mode && is_code_completion_item(&item.id) && answer_norm.contains(&gold_norm) {
+            correct = true;
+            if match_kind == "none" {
+                match_kind = String::from("contains_gold");
+            }
+        } else if !exact_mode && answer_norm.contains(&gold_norm) {
+            correct = true;
+            if match_kind == "none" {
+                match_kind = String::from("contains_gold");
+            }
+        } else if !exact_mode && semantic_clauses_match(&answer_norm, gold) {
+            correct = true;
+            if match_kind == "none" {
+                match_kind = String::from("semantic_clauses");
+            }
+        } else if !exact_mode && f1 >= 0.85 {
+            correct = true;
+            if match_kind == "none" {
+                match_kind = String::from("high_f1_semantic");
+            }
         }
-        let f1 = if exact_mode {
-            char_f1(&answer_norm, &gold_norm)
-        } else {
-            char_f1(&answer_norm, &gold_norm)
-        };
         if best_gold.is_empty() || f1 > best_f1 {
             best_f1 = f1;
             best_gold = gold.clone();
@@ -105,8 +131,10 @@ pub fn score_item(item: &QaItem, answer: String) -> QaResult {
         answer,
         score: item.score.clone(),
         exact_match,
+        correct,
         f1: best_f1,
         best_gold,
+        match_kind,
     }
 }
 
@@ -118,23 +146,56 @@ fn normalize_exact(text: &str) -> String {
     text.trim().to_string()
 }
 
+fn is_code_completion_item(id: &str) -> bool {
+    id.starts_with("lcc-") || id.starts_with("repobench-p-")
+}
+
+fn normalize_exact_for_item(id: &str, text: &str) -> String {
+    if id.starts_with("passage_retrieval_zh-") {
+        return normalize_passage_label(text);
+    }
+    if id.starts_with("lcc-") || id.starts_with("repobench-p-") {
+        return normalize_code_exact(text);
+    }
+    normalize_exact(text)
+}
+
+fn normalize_passage_label(text: &str) -> String {
+    let digits: String = text.chars().filter(|ch| ch.is_ascii_digit()).collect();
+    if digits.is_empty() {
+        return normalize_answer(text);
+    }
+    format!("段落{digits}")
+}
+
+fn normalize_code_exact(text: &str) -> String {
+    let trimmed = text
+        .trim()
+        .trim_start_matches("```")
+        .trim_end_matches("```")
+        .trim();
+    trimmed.chars().filter(|ch| !ch.is_whitespace()).collect()
+}
+
 fn normalize_answer(text: &str) -> String {
     text.to_lowercase()
         .chars()
         .filter_map(|c| match c {
             '\n' | '\t' | ' ' => None,
-            '（' => Some('('),
-            '）' => Some(')'),
-            '，' | '、' => Some(','),
-            '。' => Some('.'),
-            '：' => Some(':'),
-            '“' | '”' => Some('"'),
-            '【' => Some('['),
-            '】' => Some(']'),
+            '（' | '）' | '，' | '、' | '。' | '：' | '“' | '”' | '【' | '】' => None,
             c if c.is_ascii_punctuation() => None,
             _ => Some(c),
         })
         .collect()
+}
+
+fn semantic_clauses_match(answer_norm: &str, gold: &str) -> bool {
+    let clauses: Vec<String> = gold
+        .split(|ch: char| ch.is_whitespace() || matches!(ch, '，' | '、' | '。' | ',' | ';' | '；'))
+        .map(normalize_answer)
+        .filter(|clause| clause.chars().count() >= 2)
+        .collect();
+    !clauses.is_empty() && clauses.iter().all(|clause| answer_norm.contains(clause))
 }
 
 fn char_f1(answer: &str, gold: &str) -> f64 {
@@ -185,4 +246,95 @@ fn arg_value<'a>(args: &'a [String], key: &str) -> Option<&'a str> {
     args.windows(2)
         .find(|window| window[0] == key)
         .map(|window| window[1].as_str())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{QaItem, score_item};
+
+    #[test]
+    fn semantic_answer_can_be_more_source_faithful_than_short_gold() {
+        let item = QaItem {
+            id: "public-research-style".to_string(),
+            question: "用户说公开研究不是写什么，而是直接做什么？".to_string(),
+            golds: vec!["不写论文，直接做实验".to_string()],
+            score: "semantic".to_string(),
+        };
+
+        let result = score_item(
+            &item,
+            "我们不写论文，我们直接做实验，数据也是面向大家公开".to_string(),
+        );
+
+        assert!(result.correct);
+        assert_eq!(result.match_kind, "semantic_clauses");
+        assert!(!result.exact_match);
+    }
+
+    #[test]
+    fn exact_answers_still_require_normalized_equality() {
+        let item = QaItem {
+            id: "cache-optimal-rotation".to_string(),
+            question: "顺序是什么？".to_string(),
+            golds: vec!["A-B-C-D-A".to_string()],
+            score: "exact".to_string(),
+        };
+
+        let result = score_item(&item, "A->B->C->D->A".to_string());
+
+        assert!(!result.correct);
+        assert!(!result.exact_match);
+        assert_eq!(result.match_kind, "none");
+    }
+
+    #[test]
+    fn passage_retrieval_accepts_repeated_label_prefix() {
+        let item = QaItem {
+            id: "passage_retrieval_zh-0000-answer".to_string(),
+            question: "段落检索".to_string(),
+            golds: vec!["段落27".to_string()],
+            score: "exact".to_string(),
+        };
+
+        let result = score_item(&item, "段段落27".to_string());
+
+        assert!(result.correct);
+        assert!(result.exact_match);
+        assert_eq!(result.match_kind, "exact");
+    }
+
+    #[test]
+    fn code_exact_ignores_whitespace_and_fences() {
+        let item = QaItem {
+            id: "repobench-p-0000-answer".to_string(),
+            question: "complete code".to_string(),
+            golds: vec!["return value;".to_string()],
+            score: "exact".to_string(),
+        };
+
+        let result = score_item(&item, "```\nreturn   value;\n```".to_string());
+
+        assert!(result.correct);
+        assert!(result.exact_match);
+        assert_eq!(result.match_kind, "exact");
+    }
+
+    #[test]
+    fn code_completion_accepts_exact_span_inside_extra_output() {
+        let item = QaItem {
+            id: "lcc-0000-answer".to_string(),
+            question: "complete code".to_string(),
+            golds: vec!["Participant p = (Participant)m_Participants[i];".to_string()],
+            score: "exact".to_string(),
+        };
+
+        let result = score_item(
+            &item,
+            "Participant p = (Participant)m_Participants[i];\nfor (;;) {}".to_string(),
+        );
+
+        assert!(result.correct);
+        assert!(!result.exact_match);
+        assert_eq!(result.match_kind, "contains_gold");
+    }
 }

@@ -1,5 +1,5 @@
 use image::{GrayImage, Luma};
-use rusttype::{Font, Scale, point};
+use rusttype::{point, Font, Scale};
 use serde::{Deserialize, Serialize};
 use std::{
     error::Error,
@@ -42,12 +42,34 @@ pub struct ArchiveRenderManifest {
     pub line_spacing: f32,
     pub margin: f32,
     pub frames: Vec<ArchiveFrame>,
+    pub coverage: CoverageAnalysis,
 }
 
 #[derive(Debug, Serialize)]
 pub struct ArchiveFrame {
     pub path: String,
     pub chars: usize,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CoverageAnalysis {
+    pub base_font_size: f32,
+    pub scale_from_zpix_grid: f32,
+    pub covered_pixels: u64,
+    pub black_pixels_at_threshold: u64,
+    pub black_ratio_at_threshold: f64,
+    pub unique_buckets: usize,
+    pub buckets: Vec<CoverageBucket>,
+    pub top_edge_cliffs: Vec<CoverageBucket>,
+    pub nearby_cliffs: Vec<CoverageBucket>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct CoverageBucket {
+    pub coverage: f32,
+    pub count: u64,
+    pub share: f64,
+    pub survives_current_threshold: bool,
 }
 
 pub fn run_render(args: &[String]) -> Result<(), Box<dyn Error>> {
@@ -128,6 +150,7 @@ pub fn render_archive_frames(
         (variant.margin + content_height as f32).min(frame_size as f32 - variant.margin);
     let compact_chars = text.chars().count();
     let mut frames = Vec::new();
+    let mut coverage = CoverageTracker::new(variant.threshold);
     let mut image = GrayImage::from_pixel(frame_size, frame_size, Luma([255]));
     let mut current_x = variant.margin;
     let mut current_y = v_metrics.ascent + variant.margin;
@@ -151,16 +174,14 @@ pub fn render_archive_frames(
         }
         let glyph = scaled_glyph.positioned(point(current_x, current_y));
         if let Some(bb) = glyph.pixel_bounding_box() {
-            glyph.draw(|x, y, coverage| {
+            glyph.draw(|x, y, coverage_value| {
                 let px = x as i32 + bb.min.x;
                 let py = y as i32 + bb.min.y;
-                if px >= 0
-                    && px < image.width() as i32
-                    && py >= 0
-                    && py < image.height() as i32
-                    && coverage > variant.threshold
-                {
-                    image.put_pixel(px as u32, py as u32, Luma([0]));
+                if px >= 0 && px < image.width() as i32 && py >= 0 && py < image.height() as i32 {
+                    coverage.record(coverage_value);
+                    if coverage_value > variant.threshold {
+                        image.put_pixel(px as u32, py as u32, Luma([0]));
+                    }
                 }
             });
         }
@@ -170,6 +191,7 @@ pub fn render_archive_frames(
     if frame_chars > 0 || frames.is_empty() {
         save_archive_frame(out_dir, frame_index, image, frame_chars, &mut frames)?;
     }
+    let coverage = coverage.finish(variant.font_size);
     let frame_count = frames.len();
     let chars_per_frame = if frame_count == 0 {
         0.0
@@ -190,6 +212,7 @@ pub fn render_archive_frames(
         threshold: variant.threshold,
         line_spacing: variant.line_spacing,
         margin: variant.margin,
+        coverage,
         frames,
     };
     fs::write(
@@ -214,6 +237,88 @@ fn save_archive_frame(
         chars,
     });
     Ok(())
+}
+
+struct CoverageTracker {
+    threshold: f32,
+    buckets: [u64; 1001],
+    covered_pixels: u64,
+    black_pixels_at_threshold: u64,
+}
+
+impl CoverageTracker {
+    fn new(threshold: f32) -> Self {
+        Self {
+            threshold,
+            buckets: [0; 1001],
+            covered_pixels: 0,
+            black_pixels_at_threshold: 0,
+        }
+    }
+
+    fn record(&mut self, coverage: f32) {
+        if coverage <= 0.0 {
+            return;
+        }
+        let clamped = coverage.clamp(0.0, 1.0);
+        let bucket = ((clamped * 1000.0).round() as usize).max(1);
+        self.buckets[bucket] += 1;
+        self.covered_pixels += 1;
+        if coverage > self.threshold {
+            self.black_pixels_at_threshold += 1;
+        }
+    }
+
+    fn finish(self, font_size: f32) -> CoverageAnalysis {
+        let buckets: Vec<CoverageBucket> = self
+            .buckets
+            .iter()
+            .enumerate()
+            .filter_map(|(bucket, count)| {
+                if *count == 0 {
+                    return None;
+                }
+                let coverage = bucket as f32 / 1000.0;
+                Some(CoverageBucket {
+                    coverage,
+                    count: *count,
+                    share: share(*count, self.covered_pixels),
+                    survives_current_threshold: coverage > self.threshold,
+                })
+            })
+            .collect();
+        let mut top_edge_cliffs: Vec<CoverageBucket> = buckets
+            .iter()
+            .filter(|bucket| bucket.coverage >= 0.01 && bucket.coverage < 0.999)
+            .cloned()
+            .collect();
+        top_edge_cliffs.sort_by(|left, right| right.count.cmp(&left.count));
+        top_edge_cliffs.truncate(12);
+        let mut nearby_cliffs: Vec<CoverageBucket> = buckets
+            .iter()
+            .filter(|bucket| (bucket.coverage - self.threshold).abs() <= 0.03)
+            .cloned()
+            .collect();
+        nearby_cliffs.sort_by(|left, right| left.coverage.total_cmp(&right.coverage));
+        CoverageAnalysis {
+            base_font_size: 12.0,
+            scale_from_zpix_grid: font_size / 12.0,
+            covered_pixels: self.covered_pixels,
+            black_pixels_at_threshold: self.black_pixels_at_threshold,
+            black_ratio_at_threshold: share(self.black_pixels_at_threshold, self.covered_pixels),
+            unique_buckets: buckets.len(),
+            buckets,
+            top_edge_cliffs,
+            nearby_cliffs,
+        }
+    }
+}
+
+fn share(count: u64, total: u64) -> f64 {
+    if total == 0 {
+        return 0.0;
+    }
+    count as f64 / total as f64
 }
 
 pub fn render_text(

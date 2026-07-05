@@ -14,6 +14,7 @@
       --accent: #e7ff6f;
       --line: #2a2e39;
       --bad: #ff806f;
+      --warn: #ffce6f;
     }
     * { box-sizing: border-box; }
     body {
@@ -76,6 +77,38 @@
     .stat b { display: block; font-size: 18px; color: var(--accent); }
     .stat span { color: var(--muted); font-size: 11px; }
     .error { color: var(--bad); white-space: pre-wrap; }
+    .cliff-panel {
+      display: grid;
+      gap: 10px;
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #0f1218;
+    }
+    .cliff-title { display: flex; justify-content: space-between; gap: 10px; color: var(--ink); }
+    .cliff-title b { color: var(--accent); }
+    .cliff-note { color: var(--muted); font-size: 11px; }
+    .cliff-bars { display: grid; gap: 6px; }
+    .cliff-row {
+      display: grid;
+      grid-template-columns: 52px 1fr 58px;
+      gap: 8px;
+      align-items: center;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .cliff-track {
+      height: 9px;
+      overflow: hidden;
+      border: 1px solid #202633;
+      border-radius: 999px;
+      background: #080a0f;
+    }
+    .cliff-fill { height: 100%; background: var(--accent); }
+    .cliff-row.dead .cliff-fill { background: var(--bad); }
+    .cliff-row.near { color: var(--warn); }
+    .cliff-row.near .cliff-fill { background: var(--warn); }
+    .mono { font-variant-numeric: tabular-nums; }
     section { min-width: 0; padding: 16px; overflow: auto; }
     .frames { display: grid; gap: 18px; max-width: 100%; }
     figure { margin: 0; border: 1px solid var(--line); background: white; overflow: hidden; }
@@ -99,7 +132,7 @@
           <div class="row"><input id="fontSize" type="range" min="10" max="24" step="1" value="18"><input id="fontSizeN" type="number" value="18"></div>
         </label>
         <label>threshold
-          <div class="row"><input id="threshold" type="range" min="0.30" max="0.75" step="0.01" value="0.58"><input id="thresholdN" type="number" value="0.58" step="0.01"></div>
+          <div class="row"><input id="threshold" type="range" min="0" max="1" step="0.01" value="0.49"><input id="thresholdN" type="number" value="0.49" step="0.01"></div>
         </label>
         <label>line spacing
           <div class="row"><input id="lineSpacing" type="range" min="0" max="8" step="1" value="2"><input id="lineSpacingN" type="number" value="2"></div>
@@ -126,6 +159,11 @@
           <div class="stat"><b id="cpf">—</b><span>chars/frame</span></div>
           <div class="stat"><b id="variant">—</b><span>variant</span></div>
         </div>
+        <div class="cliff-panel" id="cliffPanel">
+          <div class="cliff-title"><span>coverage cliffs</span><b id="scale">—</b></div>
+          <div class="cliff-note" id="cliffSummary">Render once to measure actual glyph coverage buckets.</div>
+          <div class="cliff-bars" id="cliffBars"></div>
+        </div>
         <div class="hint">Auto-renders after slider stop. Formal benchmark still uses QA runner.</div>
         <div id="error" class="error"></div>
       </div>
@@ -139,6 +177,8 @@
     const status = document.getElementById('status');
     const error = document.getElementById('error');
     const framesWrap = document.getElementById('framesWrap');
+    const cliffSummary = document.getElementById('cliffSummary');
+    const cliffBars = document.getElementById('cliffBars');
     let timer = null;
     let inflight = null;
 
@@ -169,6 +209,50 @@
       timer = setTimeout(render, 450);
     }
 
+    function formatPercent(value) {
+      return `${(value * 100).toFixed(value < 0.01 ? 2 : 1)}%`;
+    }
+
+    function renderCoverage(data) {
+      const coverage = data.manifest.coverage;
+      const threshold = data.request.threshold;
+      document.getElementById('scale').textContent = `${coverage.scale_from_zpix_grid.toFixed(3)}×`;
+      const edgeCliffs = coverage.top_edge_cliffs || [];
+      const nearby = coverage.nearby_cliffs || [];
+      const next = coverage.buckets.find((bucket) => bucket.coverage > threshold);
+      const previous = [...coverage.buckets].reverse().find((bucket) => bucket.coverage <= threshold);
+      const binary = edgeCliffs.length === 0 || edgeCliffs.reduce((sum, bucket) => sum + bucket.share, 0) < 0.005;
+      if (binary) {
+        cliffSummary.textContent = `${coverage.unique_buckets} buckets; mostly binary coverage. threshold has little effect until it reaches solid pixels.`;
+      } else {
+        const nextText = next ? `next loss @ ${next.coverage.toFixed(3)} (${formatPercent(next.share)})` : 'no higher cliff';
+        const previousText = previous ? `last killed @ ${previous.coverage.toFixed(3)} (${formatPercent(previous.share)})` : 'none killed';
+        cliffSummary.textContent = `${coverage.unique_buckets} buckets; black ${formatPercent(coverage.black_ratio_at_threshold)}. ${previousText}; ${nextText}.`;
+      }
+      const rows = nearby.length > 0 ? nearby : edgeCliffs.slice(0, 8);
+      const maxShare = Math.max(...rows.map((bucket) => bucket.share), 0.000001);
+      cliffBars.innerHTML = '';
+      rows.forEach((bucket) => {
+        const row = document.createElement('div');
+        const close = Math.abs(bucket.coverage - threshold) <= 0.005;
+        row.className = `cliff-row ${bucket.survives_current_threshold ? '' : 'dead'} ${close ? 'near' : ''}`;
+        const label = document.createElement('span');
+        label.className = 'mono';
+        label.textContent = bucket.coverage.toFixed(3);
+        const track = document.createElement('div');
+        track.className = 'cliff-track';
+        const fill = document.createElement('div');
+        fill.className = 'cliff-fill';
+        fill.style.width = `${Math.max(2, (bucket.share / maxShare) * 100)}%`;
+        track.append(fill);
+        const share = document.createElement('span');
+        share.className = 'mono';
+        share.textContent = formatPercent(bucket.share);
+        row.append(label, track, share);
+        cliffBars.append(row);
+      });
+    }
+
     async function render() {
       if (inflight) inflight.abort();
       inflight = new AbortController();
@@ -188,6 +272,7 @@
         document.getElementById('chars').textContent = data.manifest.compact_chars;
         document.getElementById('cpf').textContent = data.manifest.chars_per_frame.toFixed(0);
         document.getElementById('variant').textContent = data.name;
+        renderCoverage(data);
         framesWrap.innerHTML = '';
         data.frames.forEach((src, index) => {
           const figure = document.createElement('figure');

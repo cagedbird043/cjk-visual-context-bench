@@ -1,0 +1,10 @@
+[
+  {
+    "id": "hotpotqa-0002-answer",
+    "score": "semantic",
+    "question": "Answer this LongBench question using only the archive context.\nOutput only the shortest answer span. No explanation.\nQuestion:\nPrior to playing for Michigan State, Keith Nichol played football for a school located in what city?",
+    "golds": [
+      "Norman"
+    ]
+  }
+]

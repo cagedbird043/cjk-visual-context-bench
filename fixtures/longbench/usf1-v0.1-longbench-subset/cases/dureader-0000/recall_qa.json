@@ -1,0 +1,10 @@
+[
+  {
+    "id": "dureader-0000-answer",
+    "score": "semantic",
+    "question": "这是 LongBench 中文搜索问答任务。任务输入是搜索查询，请根据 archive context 给出最能回答该查询的简短结论。\n不要复述无关剧情细节；只输出答案短语或短句，不要解释。\n搜索查询：\n热诚传说结局",
+    "golds": [
+      "《热诚传说》动画的结局是百合。"
+    ]
+  }
+]

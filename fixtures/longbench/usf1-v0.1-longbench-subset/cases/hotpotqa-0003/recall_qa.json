@@ -1,0 +1,10 @@
+[
+  {
+    "id": "hotpotqa-0003-answer",
+    "score": "semantic",
+    "question": "Answer this LongBench question using only the archive context.\nOutput only the shortest answer span. No explanation.\nQuestion:\nGary L. Bennett was a part of the space missions that have a primary destination of what celestial body?",
+    "golds": [
+      "Sun"
+    ]
+  }
+]

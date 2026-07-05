@@ -1,0 +1,10 @@
+[
+  {
+    "id": "hotpotqa-0001-answer",
+    "score": "semantic",
+    "question": "Answer this LongBench question using only the archive context.\nOutput only the shortest answer span. No explanation.\nQuestion:\nThe actor that plays Phileas Fogg in \"Around the World in 80 Days\", co-starred with Gary Cooper in a 1939 Goldwyn Productions film based on a novel by what author?",
+    "golds": [
+      "Charles L. Clifford"
+    ]
+  }
+]

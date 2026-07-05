@@ -1,0 +1,13 @@
+{
+  "id": "multifieldqa_en-0002",
+  "source": "LongBench",
+  "source_url": "https://huggingface.co/datasets/zai-org/LongBench",
+  "source_id": "5b978c8d5792b07ad99da0fc2639c6046051e9c29825ad25",
+  "task": "multifieldqa_en",
+  "language": "en",
+  "score": "semantic",
+  "length": 4297,
+  "context_chars": 31343,
+  "input_chars": 92,
+  "answer_count": 1
+}

@@ -1,0 +1,13 @@
+{
+  "id": "repobench-p-0001",
+  "source": "LongBench",
+  "source_url": "https://huggingface.co/datasets/zai-org/LongBench",
+  "source_id": "cb75af27199120a4d11be40c2968da895ebd2e8795dfc692",
+  "task": "repobench-p",
+  "language": "java",
+  "score": "exact",
+  "length": 8194,
+  "context_chars": 82520,
+  "input_chars": 3854,
+  "answer_count": 1
+}

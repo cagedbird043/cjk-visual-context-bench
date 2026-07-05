@@ -1,0 +1,13 @@
+{
+  "id": "lcc-0004",
+  "source": "LongBench",
+  "source_url": "https://huggingface.co/datasets/zai-org/LongBench",
+  "source_id": "a5da7e173afd5ba71e0185228a1df77238c2949ba3ea2935",
+  "task": "lcc",
+  "language": "java",
+  "score": "exact",
+  "length": 570,
+  "context_chars": 9212,
+  "input_chars": 0,
+  "answer_count": 1
+}

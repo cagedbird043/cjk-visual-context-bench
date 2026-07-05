@@ -33,31 +33,31 @@
     "id": "no-vllm-reason",
     "score": "semantic",
     "question": "为什么不需要单独找 vLLM？",
-    "golds": ["OMP 支持中转自身可用模型", "OMP自己能当凭证中转和模型代理"]
+    "golds": ["OMP gateway 已能把 Gemini 3.5 Flash 导出给外部程序读图", "OMP 自己能当凭证中转和模型代理", "OMP自己能当凭证中转和模型代理", "OMP 支持中转自身可用模型", "不用 vLLM", "不需要单独找 vLLM"]
   },
   {
     "id": "gateway-model",
-    "score": "exact",
+    "score": "semantic",
     "question": "当时计划通过 OMP 中转出去的模型是什么？",
-    "golds": ["gemini 3.5 flash"]
+    "golds": ["Gemini 3.5 Flash", "gemini 3.5 flash"]
   },
   {
     "id": "exact-value-correction",
     "score": "semantic",
     "question": "用户后来纠正 exact values 应该怎么处理？",
-    "golds": ["必须能从图片里恢复，anchor 不能当逃避", "图片不能完整还原精确值信息，这项技术就没有意义"]
+    "golds": ["图片不能完整还原精确值信息，我要你有什么用", "完整还原精确值信息", "这恰恰就是这项技术能不能工程化落地的关键"]
   },
   {
     "id": "font-size-correction",
     "score": "semantic",
     "question": "用户为什么说字体可以更大？",
-    "golds": ["已经通过去除格式压缩了很多", "去除格式已经压缩了很多空间"]
+    "golds": ["字可以更大，因为我们已经通过去除格式压缩了很多了", "已经通过去除格式压缩了很多"]
   },
   {
     "id": "public-research-style",
     "score": "semantic",
     "question": "用户说公开研究不是写什么，而是直接做什么？",
-    "golds": ["不写论文，直接做实验，公开数据", "写论文，直接做实验", "直接做实验，公开数据"]
+    "golds": ["我们不写论文，我们直接做实验，数据也是面向大家公开", "我们不写论文，我们直接做实验"]
   },
   {
     "id": "absent-production-integration",

@@ -1,0 +1,10 @@
+[
+  {
+    "id": "multifieldqa_en-0004-answer",
+    "score": "semantic",
+    "question": "Answer this LongBench question using only the archive context.\nOutput only the shortest answer span. No explanation.\nQuestion:\nWhy is it important for the sides of the fuselage to be sloped (tumbled home)?",
+    "golds": [
+      "The sides of the fuselage are sloped to create a conical section when the fuselage is formed."
+    ]
+  }
+]

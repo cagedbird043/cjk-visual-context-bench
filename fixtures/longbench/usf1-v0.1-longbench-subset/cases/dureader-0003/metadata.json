@@ -1,0 +1,13 @@
+{
+  "id": "dureader-0003",
+  "source": "LongBench",
+  "source_url": "https://huggingface.co/datasets/zai-org/LongBench",
+  "source_id": "a678e14922db3ddba9a3509b10a72efd2ef8ed89f8bb8daa",
+  "task": "dureader",
+  "language": "zh",
+  "score": "semantic",
+  "length": 19186,
+  "context_chars": 18836,
+  "input_chars": 9,
+  "answer_count": 1
+}

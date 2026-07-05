@@ -1,0 +1,10 @@
+[
+  {
+    "id": "hotpotqa-0000-answer",
+    "score": "semantic",
+    "question": "Answer this LongBench question using only the archive context.\nOutput only the shortest answer span. No explanation.\nQuestion:\nWhich case was brought to court first Miller v. California or Gates v. Collier ?",
+    "golds": [
+      "Miller v. California"
+    ]
+  }
+]

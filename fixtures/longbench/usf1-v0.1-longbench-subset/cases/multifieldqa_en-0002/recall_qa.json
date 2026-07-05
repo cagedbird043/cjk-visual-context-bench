@@ -1,0 +1,10 @@
+[
+  {
+    "id": "multifieldqa_en-0002-answer",
+    "score": "semantic",
+    "question": "Answer this LongBench question using only the archive context.\nOutput only the shortest answer span. No explanation.\nQuestion:\nWhat experimental techniques were used to study the quantum dot structures in this research?",
+    "golds": [
+      "Low temperature scanning tunneling microscopy and spectroscopy (STM/STS)."
+    ]
+  }
+]

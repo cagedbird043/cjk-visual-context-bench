@@ -1,0 +1,10 @@
+[
+  {
+    "id": "multifieldqa_en-0003-answer",
+    "score": "semantic",
+    "question": "Answer this LongBench question using only the archive context.\nOutput only the shortest answer span. No explanation.\nQuestion:\nWhat is the purpose of an ICD?",
+    "golds": [
+      "Implantable Cardioverter Defibrillator (ICD) is a surgically implanted electronic device to treat life-threatening heartbeat irregularities."
+    ]
+  }
+]

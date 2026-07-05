@@ -55,7 +55,7 @@ function safeRelative(input: string): string {
 async function renderArchive(input: RenderRequest) {
   const request: Required<RenderRequest> = {
     fontSize: clamp(input.fontSize, 18, 8, 32),
-    threshold: clamp(input.threshold, 0.58, 0.1, 0.9),
+    threshold: clamp(input.threshold, 0.49, 0, 1),
     lineSpacing: clamp(input.lineSpacing, 2, 0, 12),
     frameSize: clamp(input.frameSize, 2000, 512, 2400),
     contentWidth: clamp(input.contentWidth, 2000, 256, 2400),
@@ -85,7 +85,7 @@ async function staticFile(relativePath: string): Promise<Response> {
 }
 
 if (process.argv.includes("--smoke")) {
-  const result = await renderArchive({ fontSize: 18, threshold: 0.58, lineSpacing: 2 });
+  const result = await renderArchive({ fontSize: 18, threshold: 0.49, lineSpacing: 2 });
   console.log(JSON.stringify({ name: result.name, frameCount: result.manifest.frame_count }, null, 2));
   process.exit(0);
 }

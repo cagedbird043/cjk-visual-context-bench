@@ -1,0 +1,13 @@
+{
+  "id": "hotpotqa-0002",
+  "source": "LongBench",
+  "source_url": "https://huggingface.co/datasets/zai-org/LongBench",
+  "source_id": "cb9214532284b8202912b1b75592832daef0b109593185a0",
+  "task": "hotpotqa",
+  "language": "en",
+  "score": "semantic",
+  "length": 11935,
+  "context_chars": 73108,
+  "input_chars": 100,
+  "answer_count": 1
+}

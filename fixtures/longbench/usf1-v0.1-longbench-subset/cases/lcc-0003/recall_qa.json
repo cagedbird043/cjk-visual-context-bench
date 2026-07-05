@@ -1,0 +1,10 @@
+[
+  {
+    "id": "lcc-0003-answer",
+    "score": "exact",
+    "question": "This is a LongBench code completion task.\nThe archive context is the code prefix/context. Predict only the next missing answer span from that context.\nOutput the shortest completion span only. No surrounding code. No markdown fences. No explanation.\nTask input:\n<empty; complete from archive context>",
+    "golds": [
+      "            if e.text == language:"
+    ]
+  }
+]

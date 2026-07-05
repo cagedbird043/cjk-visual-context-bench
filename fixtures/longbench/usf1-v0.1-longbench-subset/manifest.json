@@ -1,0 +1,729 @@
+{
+  "id": "usf1-v0.1-longbench-subset",
+  "name": "Unicode Snapcompact F1 LongBench Subset v0.1",
+  "source": "LongBench",
+  "source_url": "https://huggingface.co/datasets/zai-org/LongBench",
+  "raw_source": ".cache/longbench/data",
+  "per_task": 5,
+  "case_count": 35,
+  "tasks": [
+    "multifieldqa_zh",
+    "dureader",
+    "passage_retrieval_zh",
+    "multifieldqa_en",
+    "hotpotqa",
+    "lcc",
+    "repobench-p"
+  ],
+  "exact_tasks": [
+    "passage_retrieval_zh",
+    "lcc",
+    "repobench-p"
+  ],
+  "generated_at": "2026-07-05T15:47:03.104Z",
+  "cases": [
+    {
+      "id": "multifieldqa_zh-0000",
+      "source": "LongBench",
+      "source_id": "5b1b8e937b83c3ff9b75ac386fae9c4575c4b9f26a4fbdad",
+      "task": "multifieldqa_zh",
+      "language": "zh",
+      "score": "semantic",
+      "length": 9593,
+      "context_chars": 9563,
+      "input_chars": 25,
+      "answers": [
+        "厦门大学。"
+      ],
+      "paths": {
+        "context": "cases/multifieldqa_zh-0000/context.txt",
+        "qa": "cases/multifieldqa_zh-0000/recall_qa.json",
+        "metadata": "cases/multifieldqa_zh-0000/metadata.json",
+        "source": "cases/multifieldqa_zh-0000/source.json"
+      }
+    },
+    {
+      "id": "multifieldqa_zh-0001",
+      "source": "LongBench",
+      "source_id": "94ac1d26cf68a448f5bddf4b5400eab51717c26ab3127df0",
+      "task": "multifieldqa_zh",
+      "language": "zh",
+      "score": "semantic",
+      "length": 6544,
+      "context_chars": 6515,
+      "input_chars": 23,
+      "answers": [
+        "6.5亿元。"
+      ],
+      "paths": {
+        "context": "cases/multifieldqa_zh-0001/context.txt",
+        "qa": "cases/multifieldqa_zh-0001/recall_qa.json",
+        "metadata": "cases/multifieldqa_zh-0001/metadata.json",
+        "source": "cases/multifieldqa_zh-0001/source.json"
+      }
+    },
+    {
+      "id": "multifieldqa_zh-0002",
+      "source": "LongBench",
+      "source_id": "681a3146fff714cfdc68c4a9ca0b6663d104d73e75facee1",
+      "task": "multifieldqa_zh",
+      "language": "zh",
+      "score": "semantic",
+      "length": 2975,
+      "context_chars": 2946,
+      "input_chars": 16,
+      "answers": [
+        "人民币57081.86元。"
+      ],
+      "paths": {
+        "context": "cases/multifieldqa_zh-0002/context.txt",
+        "qa": "cases/multifieldqa_zh-0002/recall_qa.json",
+        "metadata": "cases/multifieldqa_zh-0002/metadata.json",
+        "source": "cases/multifieldqa_zh-0002/source.json"
+      }
+    },
+    {
+      "id": "multifieldqa_zh-0003",
+      "source": "LongBench",
+      "source_id": "25256db5d953fa971b88f06502dfecacbc5532aea7fb6d91",
+      "task": "multifieldqa_zh",
+      "language": "zh",
+      "score": "semantic",
+      "length": 5941,
+      "context_chars": 5915,
+      "input_chars": 10,
+      "answers": [
+        "郗鉴拒绝了外戚庾亮废王导的建议。"
+      ],
+      "paths": {
+        "context": "cases/multifieldqa_zh-0003/context.txt",
+        "qa": "cases/multifieldqa_zh-0003/recall_qa.json",
+        "metadata": "cases/multifieldqa_zh-0003/metadata.json",
+        "source": "cases/multifieldqa_zh-0003/source.json"
+      }
+    },
+    {
+      "id": "multifieldqa_zh-0004",
+      "source": "LongBench",
+      "source_id": "1a0baf25d7431f32becd0a34034a2b88927fa168bcccf698",
+      "task": "multifieldqa_zh",
+      "language": "zh",
+      "score": "semantic",
+      "length": 4460,
+      "context_chars": 4440,
+      "input_chars": 15,
+      "answers": [
+        "10万元。"
+      ],
+      "paths": {
+        "context": "cases/multifieldqa_zh-0004/context.txt",
+        "qa": "cases/multifieldqa_zh-0004/recall_qa.json",
+        "metadata": "cases/multifieldqa_zh-0004/metadata.json",
+        "source": "cases/multifieldqa_zh-0004/source.json"
+      }
+    },
+    {
+      "id": "dureader-0000",
+      "source": "LongBench",
+      "source_id": "12278555b79f2eccb08cbc05e5eb1e3db6dd6656a6dfc903",
+      "task": "dureader",
+      "language": "zh",
+      "score": "semantic",
+      "length": 14094,
+      "context_chars": 14073,
+      "input_chars": 6,
+      "answers": [
+        "《热诚传说》动画的结局是百合。"
+      ],
+      "paths": {
+        "context": "cases/dureader-0000/context.txt",
+        "qa": "cases/dureader-0000/recall_qa.json",
+        "metadata": "cases/dureader-0000/metadata.json",
+        "source": "cases/dureader-0000/source.json"
+      }
+    },
+    {
+      "id": "dureader-0001",
+      "source": "LongBench",
+      "source_id": "63140e6babfd4ba05e8aa00ced72bd5d6dd345069dc51c01",
+      "task": "dureader",
+      "language": "zh",
+      "score": "semantic",
+      "length": 16666,
+      "context_chars": 16642,
+      "input_chars": 20,
+      "answers": [
+        "加内存。",
+        "硬盘吧，如果硬盘空间不足，请清理多余的垃圾，不想清理更换大容量硬盘，1TB的硬盘也就300多。",
+        "可以用夜神，夜神可以安装。一般升级内存的话需要买硬件。"
+      ],
+      "paths": {
+        "context": "cases/dureader-0001/context.txt",
+        "qa": "cases/dureader-0001/recall_qa.json",
+        "metadata": "cases/dureader-0001/metadata.json",
+        "source": "cases/dureader-0001/source.json"
+      }
+    },
+    {
+      "id": "dureader-0002",
+      "source": "LongBench",
+      "source_id": "5d107886d7cf249e9aac8742319a0e3a804fdb23dcb9cf49",
+      "task": "dureader",
+      "language": "zh",
+      "score": "semantic",
+      "length": 12999,
+      "context_chars": 12813,
+      "input_chars": 12,
+      "answers": [
+        "1首先，建立绘图，新建-选择绘图类型-基本流程图；2添加流程图元素-进程，将图示进程框拖进右侧空白处；3通常进程框显示为蓝色，将其改变为白色，右键选择格式-填充-选择白色；4流程图又一个元素，剪头的处理，单击左侧剪头，拖进空白处，右键格式-线条-选择黑色；5这两个元素是比较基本的，然后就可以通过复制粘贴，得到多个进程框和箭头，这样用方便看成品图。",
+        "第一步，画子系统的输入输出，把整个系统视为一个大的加工，然后根据数据系统从哪些外部实体接收数据流，以及系统发送数据流到那些外部实体，就可以画出输入输出图。第二步，画子系统的内部，把顶层图的加工分解成若干个加工，并用数据流将这些加工连接起来，使得顶层图的输入数据经过若干加工处理后，变成顶层图的输出数据流。第三步，画加工的内部把每个加工看作一个小系统，把加工的输入输出数据流看成小系统的输入输出流。第四步，画子加工的分解图对第三步分解出来的DFD图中的每个加工，重复第三步的分解过程，直到图中尚未分解的加工都是足够简单的（即不可再分解）第五步，对数据流图和加工编号对于一个软件系统，其数据流图可能有许多层，每一层又有许多张图。"
+      ],
+      "paths": {
+        "context": "cases/dureader-0002/context.txt",
+        "qa": "cases/dureader-0002/recall_qa.json",
+        "metadata": "cases/dureader-0002/metadata.json",
+        "source": "cases/dureader-0002/source.json"
+      }
+    },
+    {
+      "id": "dureader-0003",
+      "source": "LongBench",
+      "source_id": "a678e14922db3ddba9a3509b10a72efd2ef8ed89f8bb8daa",
+      "task": "dureader",
+      "language": "zh",
+      "score": "semantic",
+      "length": 19186,
+      "context_chars": 18836,
+      "input_chars": 9,
+      "answers": [
+        "海安属长江三角洲经济区，为上海辐射地带。海安县上世纪80年代即被列为江苏省综合改革试点县和沿海对外经济开放县。机械行业生产规模、加工能力在江苏省县级建制中名列前茅；纺织、丝绸形成织造、印染、成衣一条龙生产线，勾针衣闻名世界，曾被外商誉为“东方珍品”；素质优良，装备先进的建筑队伍遍及全国，走向世界，被誉为“建筑之乡”。2005我县在全国县域经济社会综合发展实力排名中提升45位，位列144，首次进入全国县域经济基本竞争力百强县（市）和中小城市综合实力百强县（市）行列。2005年，全县实现地区生产总值135.1亿元，增长15.8％。工农业总产值502亿元，增长39％。财政总收入12.5亿元，增长27.9％。完成社会固定资产投资88亿元，增长39.7％，，县域经济综合实力明显增强。"
+      ],
+      "paths": {
+        "context": "cases/dureader-0003/context.txt",
+        "qa": "cases/dureader-0003/recall_qa.json",
+        "metadata": "cases/dureader-0003/metadata.json",
+        "source": "cases/dureader-0003/source.json"
+      }
+    },
+    {
+      "id": "dureader-0004",
+      "source": "LongBench",
+      "source_id": "3ab3847f29ece7b50ed80b8747b72f7b60c9d9c9ef7e40d0",
+      "task": "dureader",
+      "language": "zh",
+      "score": "semantic",
+      "length": 13014,
+      "context_chars": 12978,
+      "input_chars": 14,
+      "answers": [
+        "一般指的是清理缓存，以便后面系统更好地运行。"
+      ],
+      "paths": {
+        "context": "cases/dureader-0004/context.txt",
+        "qa": "cases/dureader-0004/recall_qa.json",
+        "metadata": "cases/dureader-0004/metadata.json",
+        "source": "cases/dureader-0004/source.json"
+      }
+    },
+    {
+      "id": "passage_retrieval_zh-0000",
+      "source": "LongBench",
+      "source_id": "f951c270fb212ec46982cbbe2292ca317478d25e6248e802",
+      "task": "passage_retrieval_zh",
+      "language": "zh",
+      "score": "exact",
+      "length": 6478,
+      "context_chars": 6258,
+      "input_chars": 219,
+      "answers": [
+        "段落27"
+      ],
+      "paths": {
+        "context": "cases/passage_retrieval_zh-0000/context.txt",
+        "qa": "cases/passage_retrieval_zh-0000/recall_qa.json",
+        "metadata": "cases/passage_retrieval_zh-0000/metadata.json",
+        "source": "cases/passage_retrieval_zh-0000/source.json"
+      }
+    },
+    {
+      "id": "passage_retrieval_zh-0001",
+      "source": "LongBench",
+      "source_id": "d2d972f84c899de8af8b25953a9c19a1728ec30243ec890f",
+      "task": "passage_retrieval_zh",
+      "language": "zh",
+      "score": "exact",
+      "length": 7368,
+      "context_chars": 7264,
+      "input_chars": 103,
+      "answers": [
+        "段落2"
+      ],
+      "paths": {
+        "context": "cases/passage_retrieval_zh-0001/context.txt",
+        "qa": "cases/passage_retrieval_zh-0001/recall_qa.json",
+        "metadata": "cases/passage_retrieval_zh-0001/metadata.json",
+        "source": "cases/passage_retrieval_zh-0001/source.json"
+      }
+    },
+    {
+      "id": "passage_retrieval_zh-0002",
+      "source": "LongBench",
+      "source_id": "5cefc582ed64f9801349b7e1812d6c5890d0c18495f403d7",
+      "task": "passage_retrieval_zh",
+      "language": "zh",
+      "score": "exact",
+      "length": 6378,
+      "context_chars": 6248,
+      "input_chars": 129,
+      "answers": [
+        "段落15"
+      ],
+      "paths": {
+        "context": "cases/passage_retrieval_zh-0002/context.txt",
+        "qa": "cases/passage_retrieval_zh-0002/recall_qa.json",
+        "metadata": "cases/passage_retrieval_zh-0002/metadata.json",
+        "source": "cases/passage_retrieval_zh-0002/source.json"
+      }
+    },
+    {
+      "id": "passage_retrieval_zh-0003",
+      "source": "LongBench",
+      "source_id": "0d7590d16c810be4a0369756ea1a0f9748880c283a986c2c",
+      "task": "passage_retrieval_zh",
+      "language": "zh",
+      "score": "exact",
+      "length": 7417,
+      "context_chars": 7297,
+      "input_chars": 119,
+      "answers": [
+        "段落10"
+      ],
+      "paths": {
+        "context": "cases/passage_retrieval_zh-0003/context.txt",
+        "qa": "cases/passage_retrieval_zh-0003/recall_qa.json",
+        "metadata": "cases/passage_retrieval_zh-0003/metadata.json",
+        "source": "cases/passage_retrieval_zh-0003/source.json"
+      }
+    },
+    {
+      "id": "passage_retrieval_zh-0004",
+      "source": "LongBench",
+      "source_id": "0cb8be933b26f698ecf56f02503311d9c04d6a36e5d789c9",
+      "task": "passage_retrieval_zh",
+      "language": "zh",
+      "score": "exact",
+      "length": 6654,
+      "context_chars": 6554,
+      "input_chars": 99,
+      "answers": [
+        "段落1"
+      ],
+      "paths": {
+        "context": "cases/passage_retrieval_zh-0004/context.txt",
+        "qa": "cases/passage_retrieval_zh-0004/recall_qa.json",
+        "metadata": "cases/passage_retrieval_zh-0004/metadata.json",
+        "source": "cases/passage_retrieval_zh-0004/source.json"
+      }
+    },
+    {
+      "id": "multifieldqa_en-0000",
+      "source": "LongBench",
+      "source_id": "c29e95ab6195406aceecf3874186150cb1b8b26db5bcd0e4",
+      "task": "multifieldqa_en",
+      "language": "en",
+      "score": "semantic",
+      "length": 819,
+      "context_chars": 4995,
+      "input_chars": 45,
+      "answers": [
+        "South West Ultras fan club."
+      ],
+      "paths": {
+        "context": "cases/multifieldqa_en-0000/context.txt",
+        "qa": "cases/multifieldqa_en-0000/recall_qa.json",
+        "metadata": "cases/multifieldqa_en-0000/metadata.json",
+        "source": "cases/multifieldqa_en-0000/source.json"
+      }
+    },
+    {
+      "id": "multifieldqa_en-0001",
+      "source": "LongBench",
+      "source_id": "1d46294ee8fcc0a64828778b04198fcbe4f75841775e1205",
+      "task": "multifieldqa_en",
+      "language": "en",
+      "score": "semantic",
+      "length": 6900,
+      "context_chars": 45634,
+      "input_chars": 48,
+      "answers": [
+        "No, it is not necessary."
+      ],
+      "paths": {
+        "context": "cases/multifieldqa_en-0001/context.txt",
+        "qa": "cases/multifieldqa_en-0001/recall_qa.json",
+        "metadata": "cases/multifieldqa_en-0001/metadata.json",
+        "source": "cases/multifieldqa_en-0001/source.json"
+      }
+    },
+    {
+      "id": "multifieldqa_en-0002",
+      "source": "LongBench",
+      "source_id": "5b978c8d5792b07ad99da0fc2639c6046051e9c29825ad25",
+      "task": "multifieldqa_en",
+      "language": "en",
+      "score": "semantic",
+      "length": 4297,
+      "context_chars": 31343,
+      "input_chars": 92,
+      "answers": [
+        "Low temperature scanning tunneling microscopy and spectroscopy (STM/STS)."
+      ],
+      "paths": {
+        "context": "cases/multifieldqa_en-0002/context.txt",
+        "qa": "cases/multifieldqa_en-0002/recall_qa.json",
+        "metadata": "cases/multifieldqa_en-0002/metadata.json",
+        "source": "cases/multifieldqa_en-0002/source.json"
+      }
+    },
+    {
+      "id": "multifieldqa_en-0003",
+      "source": "LongBench",
+      "source_id": "2f73cf12085e3fb879c775fc4851b72092a060cad5a927c6",
+      "task": "multifieldqa_en",
+      "language": "en",
+      "score": "semantic",
+      "length": 8925,
+      "context_chars": 54678,
+      "input_chars": 30,
+      "answers": [
+        "Implantable Cardioverter Defibrillator (ICD) is a surgically implanted electronic device to treat life-threatening heartbeat irregularities."
+      ],
+      "paths": {
+        "context": "cases/multifieldqa_en-0003/context.txt",
+        "qa": "cases/multifieldqa_en-0003/recall_qa.json",
+        "metadata": "cases/multifieldqa_en-0003/metadata.json",
+        "source": "cases/multifieldqa_en-0003/source.json"
+      }
+    },
+    {
+      "id": "multifieldqa_en-0004",
+      "source": "LongBench",
+      "source_id": "41e27260a12cc40a778f8c1ba8bf643ee655871a458e5e1c",
+      "task": "multifieldqa_en",
+      "language": "en",
+      "score": "semantic",
+      "length": 6250,
+      "context_chars": 34429,
+      "input_chars": 78,
+      "answers": [
+        "The sides of the fuselage are sloped to create a conical section when the fuselage is formed."
+      ],
+      "paths": {
+        "context": "cases/multifieldqa_en-0004/context.txt",
+        "qa": "cases/multifieldqa_en-0004/recall_qa.json",
+        "metadata": "cases/multifieldqa_en-0004/metadata.json",
+        "source": "cases/multifieldqa_en-0004/source.json"
+      }
+    },
+    {
+      "id": "hotpotqa-0000",
+      "source": "LongBench",
+      "source_id": "fc6267db9ba02bbb251960231bc87251c581110e4e2b5f3f",
+      "task": "hotpotqa",
+      "language": "en",
+      "score": "semantic",
+      "length": 8616,
+      "context_chars": 54062,
+      "input_chars": 80,
+      "answers": [
+        "Miller v. California"
+      ],
+      "paths": {
+        "context": "cases/hotpotqa-0000/context.txt",
+        "qa": "cases/hotpotqa-0000/recall_qa.json",
+        "metadata": "cases/hotpotqa-0000/metadata.json",
+        "source": "cases/hotpotqa-0000/source.json"
+      }
+    },
+    {
+      "id": "hotpotqa-0001",
+      "source": "LongBench",
+      "source_id": "d542fcd45bbf5112eee9127f04ae060a887c8ef2050aa160",
+      "task": "hotpotqa",
+      "language": "en",
+      "score": "semantic",
+      "length": 11525,
+      "context_chars": 67495,
+      "input_chars": 163,
+      "answers": [
+        "Charles L. Clifford"
+      ],
+      "paths": {
+        "context": "cases/hotpotqa-0001/context.txt",
+        "qa": "cases/hotpotqa-0001/recall_qa.json",
+        "metadata": "cases/hotpotqa-0001/metadata.json",
+        "source": "cases/hotpotqa-0001/source.json"
+      }
+    },
+    {
+      "id": "hotpotqa-0002",
+      "source": "LongBench",
+      "source_id": "cb9214532284b8202912b1b75592832daef0b109593185a0",
+      "task": "hotpotqa",
+      "language": "en",
+      "score": "semantic",
+      "length": 11935,
+      "context_chars": 73108,
+      "input_chars": 100,
+      "answers": [
+        "Norman"
+      ],
+      "paths": {
+        "context": "cases/hotpotqa-0002/context.txt",
+        "qa": "cases/hotpotqa-0002/recall_qa.json",
+        "metadata": "cases/hotpotqa-0002/metadata.json",
+        "source": "cases/hotpotqa-0002/source.json"
+      }
+    },
+    {
+      "id": "hotpotqa-0003",
+      "source": "LongBench",
+      "source_id": "105e7f4d337799315ddf870acc4ff2a62a1e6cdf489086cd",
+      "task": "hotpotqa",
+      "language": "en",
+      "score": "semantic",
+      "length": 11879,
+      "context_chars": 80499,
+      "input_chars": 104,
+      "answers": [
+        "Sun"
+      ],
+      "paths": {
+        "context": "cases/hotpotqa-0003/context.txt",
+        "qa": "cases/hotpotqa-0003/recall_qa.json",
+        "metadata": "cases/hotpotqa-0003/metadata.json",
+        "source": "cases/hotpotqa-0003/source.json"
+      }
+    },
+    {
+      "id": "hotpotqa-0004",
+      "source": "LongBench",
+      "source_id": "5ff08452b84748458e71d82a6d387599969311fd61cd8fd1",
+      "task": "hotpotqa",
+      "language": "en",
+      "score": "semantic",
+      "length": 9865,
+      "context_chars": 61514,
+      "input_chars": 64,
+      "answers": [
+        "erotic thriller film"
+      ],
+      "paths": {
+        "context": "cases/hotpotqa-0004/context.txt",
+        "qa": "cases/hotpotqa-0004/recall_qa.json",
+        "metadata": "cases/hotpotqa-0004/metadata.json",
+        "source": "cases/hotpotqa-0004/source.json"
+      }
+    },
+    {
+      "id": "lcc-0000",
+      "source": "LongBench",
+      "source_id": "28ce5cf5e0beeb47248c6cba20ae17fa71d60d402770d464",
+      "task": "lcc",
+      "language": "csharp",
+      "score": "exact",
+      "length": 5243,
+      "context_chars": 39476,
+      "input_chars": 0,
+      "answers": [
+        "\t\t\t\tParticipant p = (Participant)m_Participants[i];"
+      ],
+      "paths": {
+        "context": "cases/lcc-0000/context.txt",
+        "qa": "cases/lcc-0000/recall_qa.json",
+        "metadata": "cases/lcc-0000/metadata.json",
+        "source": "cases/lcc-0000/source.json"
+      }
+    },
+    {
+      "id": "lcc-0001",
+      "source": "LongBench",
+      "source_id": "ca807f49d7c6f84dcae3df694bde685aa7f75a02e9d4f574",
+      "task": "lcc",
+      "language": "python",
+      "score": "exact",
+      "length": 1069,
+      "context_chars": 9206,
+      "input_chars": 0,
+      "answers": [
+        "\t\t\tZ_.add_edge(e_u, e_v, **data.copy())"
+      ],
+      "paths": {
+        "context": "cases/lcc-0001/context.txt",
+        "qa": "cases/lcc-0001/recall_qa.json",
+        "metadata": "cases/lcc-0001/metadata.json",
+        "source": "cases/lcc-0001/source.json"
+      }
+    },
+    {
+      "id": "lcc-0002",
+      "source": "LongBench",
+      "source_id": "04429037d9380b6e9c3f7b2070992a5af10745895025113c",
+      "task": "lcc",
+      "language": "python",
+      "score": "exact",
+      "length": 844,
+      "context_chars": 8641,
+      "input_chars": 0,
+      "answers": [
+        "        rfd, fd, cfilename   = open_tmp_file('rwseektest.wav')"
+      ],
+      "paths": {
+        "context": "cases/lcc-0002/context.txt",
+        "qa": "cases/lcc-0002/recall_qa.json",
+        "metadata": "cases/lcc-0002/metadata.json",
+        "source": "cases/lcc-0002/source.json"
+      }
+    },
+    {
+      "id": "lcc-0003",
+      "source": "LongBench",
+      "source_id": "9bc1f81e1a4c4b44da11ffc093a0c9fecbe5f99e4eff3aa5",
+      "task": "lcc",
+      "language": "python",
+      "score": "exact",
+      "length": 462,
+      "context_chars": 6853,
+      "input_chars": 0,
+      "answers": [
+        "            if e.text == language:"
+      ],
+      "paths": {
+        "context": "cases/lcc-0003/context.txt",
+        "qa": "cases/lcc-0003/recall_qa.json",
+        "metadata": "cases/lcc-0003/metadata.json",
+        "source": "cases/lcc-0003/source.json"
+      }
+    },
+    {
+      "id": "lcc-0004",
+      "source": "LongBench",
+      "source_id": "a5da7e173afd5ba71e0185228a1df77238c2949ba3ea2935",
+      "task": "lcc",
+      "language": "java",
+      "score": "exact",
+      "length": 570,
+      "context_chars": 9212,
+      "input_chars": 0,
+      "answers": [
+        "\t\t\t\t\tOLStyleValue styleValue = (OLStyleValue) value;"
+      ],
+      "paths": {
+        "context": "cases/lcc-0004/context.txt",
+        "qa": "cases/lcc-0004/recall_qa.json",
+        "metadata": "cases/lcc-0004/metadata.json",
+        "source": "cases/lcc-0004/source.json"
+      }
+    },
+    {
+      "id": "repobench-p-0000",
+      "source": "LongBench",
+      "source_id": "03b9c503110e4dc8f2d7690f56be9e9b2733744da1a855ff",
+      "task": "repobench-p",
+      "language": "java",
+      "score": "exact",
+      "length": 6425,
+      "context_chars": 58435,
+      "input_chars": 1863,
+      "answers": [
+        "    private transient KademliaRoutingTable routingTable;"
+      ],
+      "paths": {
+        "context": "cases/repobench-p-0000/context.txt",
+        "qa": "cases/repobench-p-0000/recall_qa.json",
+        "metadata": "cases/repobench-p-0000/metadata.json",
+        "source": "cases/repobench-p-0000/source.json"
+      }
+    },
+    {
+      "id": "repobench-p-0001",
+      "source": "LongBench",
+      "source_id": "cb75af27199120a4d11be40c2968da895ebd2e8795dfc692",
+      "task": "repobench-p",
+      "language": "java",
+      "score": "exact",
+      "length": 8194,
+      "context_chars": 82520,
+      "input_chars": 3854,
+      "answers": [
+        "        mEffects.add(new NoEffect());"
+      ],
+      "paths": {
+        "context": "cases/repobench-p-0001/context.txt",
+        "qa": "cases/repobench-p-0001/recall_qa.json",
+        "metadata": "cases/repobench-p-0001/metadata.json",
+        "source": "cases/repobench-p-0001/source.json"
+      }
+    },
+    {
+      "id": "repobench-p-0002",
+      "source": "LongBench",
+      "source_id": "348e33db9dd7512c0d821c5d1fc6a5b74a412a1e9be012f7",
+      "task": "repobench-p",
+      "language": "python",
+      "score": "exact",
+      "length": 5302,
+      "context_chars": 57515,
+      "input_chars": 1077,
+      "answers": [
+        "class Encryption1(Encryption):  # noqa: D101"
+      ],
+      "paths": {
+        "context": "cases/repobench-p-0002/context.txt",
+        "qa": "cases/repobench-p-0002/recall_qa.json",
+        "metadata": "cases/repobench-p-0002/metadata.json",
+        "source": "cases/repobench-p-0002/source.json"
+      }
+    },
+    {
+      "id": "repobench-p-0003",
+      "source": "LongBench",
+      "source_id": "cf3d37ae2215d5f5123fcc3ad041ba23b56d19a3abad67e6",
+      "task": "repobench-p",
+      "language": "java",
+      "score": "exact",
+      "length": 8166,
+      "context_chars": 82520,
+      "input_chars": 3414,
+      "answers": [
+        "    private ImmersiveTouchNavigation mImmersiveTouchNavigation;"
+      ],
+      "paths": {
+        "context": "cases/repobench-p-0003/context.txt",
+        "qa": "cases/repobench-p-0003/recall_qa.json",
+        "metadata": "cases/repobench-p-0003/metadata.json",
+        "source": "cases/repobench-p-0003/source.json"
+      }
+    },
+    {
+      "id": "repobench-p-0004",
+      "source": "LongBench",
+      "source_id": "2c164c959e45cbd40c80a8618dfe2fbe7d12a613e0ce71c4",
+      "task": "repobench-p",
+      "language": "java",
+      "score": "exact",
+      "length": 6872,
+      "context_chars": 70280,
+      "input_chars": 7693,
+      "answers": [
+        "                new EventCommandHandler<>(SetUpdateFrequencyCommand.class, UpdateFrequencyChangeEvent::fromCommand, this::queueEvent));"
+      ],
+      "paths": {
+        "context": "cases/repobench-p-0004/context.txt",
+        "qa": "cases/repobench-p-0004/recall_qa.json",
+        "metadata": "cases/repobench-p-0004/metadata.json",
+        "source": "cases/repobench-p-0004/source.json"
+      }
+    }
+  ]
+}

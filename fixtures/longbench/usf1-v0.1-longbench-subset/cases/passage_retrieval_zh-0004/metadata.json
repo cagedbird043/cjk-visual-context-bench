@@ -1,0 +1,13 @@
+{
+  "id": "passage_retrieval_zh-0004",
+  "source": "LongBench",
+  "source_url": "https://huggingface.co/datasets/zai-org/LongBench",
+  "source_id": "0cb8be933b26f698ecf56f02503311d9c04d6a36e5d789c9",
+  "task": "passage_retrieval_zh",
+  "language": "zh",
+  "score": "exact",
+  "length": 6654,
+  "context_chars": 6554,
+  "input_chars": 99,
+  "answer_count": 1
+}

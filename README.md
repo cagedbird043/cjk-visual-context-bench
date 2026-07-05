@@ -6,6 +6,10 @@ Goal: take full OMP conversation history, serialize it like `packages/snapcompac
 
 This repo is experiment-first: real contexts, rendered frames, QA recall, exact-value recall, absent-fact checks, public data.
 
+![Unicode Snapcompact F1 preset frontier](reports/usf1-v0.1-frontier.svg)
+
+USF1 v0.1: on the LongBench subset with Gemini 3.5 Flash, `zpix24-binary-2000` retains **91.0%** of text-baseline eligible F1 while carrying about **7.7k chars/frame**. `zpix18-half-049-2000` is denser at **11.3k chars/frame** but retains **84.5%**.
+
 ## Target
 
 Not OCR.
@@ -72,6 +76,24 @@ long command/result histories
 ```
 
 Tiny synthetic files may exist only as smoke tests for renderer plumbing. They are not benchmark evidence.
+
+LongBench subset fixtures are generated from the public LongBench `data.zip` instead of handwritten corpora:
+
+```sh
+bun scripts/import-longbench-subset.ts --raw-dir .cache/longbench/data --out fixtures/longbench/usf1-v0.1-longbench-subset --per-task 5
+```
+
+The importer emits deterministic per-case directories with `context.txt`, `recall_qa.json`, `metadata.json`, and `source.json`.
+
+Run a smoke leaderboard with one case per LongBench task:
+
+```sh
+bun scripts/usf1-bench-run.ts --manifest fixtures/longbench/usf1-v0.1-longbench-subset/manifest.json --out runs/usf1-smoke --mode text --one-per-task --omp-gateway --model google-antigravity/gemini-3.5-flash --max-tokens 160
+bun scripts/usf1-bench-run.ts --manifest fixtures/longbench/usf1-v0.1-longbench-subset/manifest.json --out runs/usf1-smoke --mode image --preset zpix24-binary-2000 --one-per-task --omp-gateway --model google-antigravity/gemini-3.5-flash --max-tokens 160
+bun scripts/usf1-bench-summarize.ts --run-dir runs/usf1-smoke --out runs/usf1-smoke
+```
+
+Drop `--one-per-task` to run all 35 v0.1 cases. The leaderboard is F1-first; `correct` remains a conservative diagnostic column. Summaries also compute an eligible subset using `--baseline-threshold` (default `0.7`): only cases where the text baseline reaches that F1 are used for `eligible F1`, while lower-baseline cases stay in the hard/error-analysis bucket.
 
 ## Required fixture shape
 

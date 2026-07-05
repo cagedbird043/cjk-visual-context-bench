@@ -27,6 +27,7 @@ pub async fn run_archive_qa(args: &[String]) -> Result<(), Box<dyn Error>> {
         }
     }
     let mut out = fs::File::create(out_path)?;
+    let mut correct = 0usize;
     let mut exact = 0usize;
     let mut f1_sum = 0.0;
 
@@ -45,6 +46,9 @@ pub async fn run_archive_qa(args: &[String]) -> Result<(), Box<dyn Error>> {
         if result.exact_match {
             exact += 1;
         }
+        if result.correct {
+            correct += 1;
+        }
         f1_sum += result.f1;
         writeln!(out, "{}", serde_json::to_string(&result)?)?;
         println!("{}", serde_json::to_string(&result)?);
@@ -61,7 +65,7 @@ pub async fn run_archive_qa(args: &[String]) -> Result<(), Box<dyn Error>> {
     } else {
         exact as f64 / total as f64
     };
-    eprintln!("archive-qa: em={em:.4} f1={f1:.4} exact={exact}/{total}");
+    eprintln!("archive-qa: correct={correct}/{total} em={em:.4} f1={f1:.4} exact={exact}/{total}");
     Ok(())
 }
 

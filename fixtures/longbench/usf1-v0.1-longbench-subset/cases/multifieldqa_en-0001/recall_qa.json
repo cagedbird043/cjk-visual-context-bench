@@ -1,0 +1,10 @@
+[
+  {
+    "id": "multifieldqa_en-0001-answer",
+    "score": "semantic",
+    "question": "Answer this LongBench question using only the archive context.\nOutput only the shortest answer span. No explanation.\nQuestion:\nIs the ISR necessary for transgene reactivation?",
+    "golds": [
+      "No, it is not necessary."
+    ]
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "id": "hotpotqa-0004-answer",
+    "score": "semantic",
+    "question": "Answer this LongBench question using only the archive context.\nOutput only the shortest answer span. No explanation.\nQuestion:\nWas Atom Egoyans biggest commercial success on stage or on film?",
+    "golds": [
+      "erotic thriller film"
+    ]
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "id": "multifieldqa_zh-0000-answer",
+    "score": "semantic",
+    "question": "请只根据 archive context 回答下面的 LongBench 问题。\n只输出最短答案片段，不要解释。\n问题：\n全国美国文学研究会的第十八届年会在哪所大学举办的？",
+    "golds": [
+      "厦门大学。"
+    ]
+  }
+]

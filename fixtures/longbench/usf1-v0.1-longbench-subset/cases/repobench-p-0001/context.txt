@@ -1,0 +1,2362 @@
+Source: LongBench
+Dataset: repobench-p
+Language: java
+Source id: cb75af27199120a4d11be40c2968da895ebd2e8795dfc692
+
+Input:
+import android.app.Activity;
+import android.graphics.BitmapFactory;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.SubMenu;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Toast;
+import java.util.ArrayList;
+import java.util.List;
+import net.protyposis.android.spectaculum.SpectaculumView;
+import net.protyposis.android.spectaculum.effects.Parameter;
+import net.protyposis.android.spectaculum.effects.ImmersiveSensorNavigation;
+import net.protyposis.android.spectaculum.effects.ContrastBrightnessAdjustmentEffect;
+import net.protyposis.android.spectaculum.effects.EffectException;
+import net.protyposis.android.spectaculum.effects.FlowAbsSubEffect;
+import net.protyposis.android.spectaculum.effects.QrMarkerEffect;
+import net.protyposis.android.spectaculum.effects.Effect;
+import net.protyposis.android.spectaculum.effects.FlipEffect;
+import net.protyposis.android.spectaculum.effects.FlowAbsEffect;
+import net.protyposis.android.spectaculum.effects.KernelBlurEffect;
+import net.protyposis.android.spectaculum.effects.KernelEdgeDetectEffect;
+import net.protyposis.android.spectaculum.effects.KernelEmbossEffect;
+import net.protyposis.android.spectaculum.effects.KernelGaussBlurEffect;
+import net.protyposis.android.spectaculum.effects.KernelSharpenEffect;
+import net.protyposis.android.spectaculum.effects.NoEffect;
+import net.protyposis.android.spectaculum.effects.SimpleToonEffect;
+import net.protyposis.android.spectaculum.effects.SobelEffect;
+import net.protyposis.android.spectaculum.effects.ImmersiveTouchNavigation;
+import net.protyposis.android.spectaculum.effects.StackEffect;
+import net.protyposis.android.spectaculum.effects.WatermarkEffect;
+import net.protyposis.android.spectaculum.gles.GLUtils;
+import net.protyposis.android.spectaculum.effects.ColorFilterEffect;
+import net.protyposis.android.spectaculum.effects.ImmersiveEffect;
+import net.protyposis.android.spectaculumdemo.testeffect.InterlaceEffect;
+/*
+ * Copyright 2014 Mario Guggenberger <mg@protyposis.net>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package net.protyposis.android.spectaculumdemo;
+
+
+
+
+/**
+ * Created by Mario on 18.07.2014.
+ *
+ * Helper class for easy effect handling in the various Spectaculum views in this demo.
+ * Provides a list of effects for the actionbar and displays a parameter control panel for
+ * selected effects with parameters that the demo user can player play with.
+ */
+public class EffectManager implements SpectaculumView.EffectEventListener, Effect.Listener {
+
+    private Activity mActivity;
+    private ViewGroup mParameterListView;
+    private EffectParameterListAdapter mParameterListAdapter;
+    private MenuItem mParameterToggleMenuItem;
+    private SpectaculumView mSpectaculumView;
+    private List<Effect> mEffects;
+    private Effect mSelectedEffect;
+    private ImmersiveSensorNavigation mImmersiveSensorNavigation;
+    private ImmersiveTouchNavigation mImmersiveTouchNavigation;
+
+    public EffectManager(Activity activity, int parameterListViewId, SpectaculumView glView) {
+        mActivity = activity;
+        mParameterListView = (ViewGroup) activity.findViewById(parameterListViewId);
+        mSpectaculumView = glView;
+        mEffects = new ArrayList<>();
+        mSpectaculumView.setEffectEventListener(this);
+
+        // Spectaculum-Core filters
+
+Context:
+Spectaculum-Effect-Immersive/src/main/java/net/protyposis/android/spectaculum/effects/ImmersiveTouchNavigation.java
+public class ImmersiveTouchNavigation {
+
+    private static final String TAG = ImmersiveTouchNavigation.class.getSimpleName();
+
+    private SpectaculumView mSpectaculumView;
+    private boolean mSpectaculumViewTouchEnabled;
+    private GestureDetector mGestureDetector;
+    private float mPanX;
+    private float mPanY;
+    private ImmersiveEffect mEffect;
+    private BooleanParameter mParameter;
+    private boolean mActive;
+    private float[] mRotationMatrix = new float[16];
+
+    /**
+     * Creates a touch navigation instance for the supplied view widget.
+     * @param spectaculumView the view widget where the touch gestures should be read from
+     */
+    public ImmersiveTouchNavigation(SpectaculumView spectaculumView) {
+        mSpectaculumView = spectaculumView;
+
+        mGestureDetector = new GestureDetector(mSpectaculumView.getContext(), mOnGestureListener);
+
+        // Make a UI handler for activation state toggling
+        final Handler h = new Handler();
+
+        // Create an effect parameter to toggle the touch navigation on/off
+        mParameter = new BooleanParameter("TouchNav", false, new BooleanParameter.Delegate() {
+            @Override
+            public void setValue(final Boolean value) {
+                // Activate/deactivate on UI thread
+                // Parameters are usually set on the GL thread, so we need to transfer this back to the UI thread
+                h.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mActive = value;
+                        if(mActive) {
+                            activate();
+                        } else {
+                            deactivate();
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Attaches to the effect and adds parameter to toggle touch navigation on/off.
+     * @param effect the effect to attach touch navigation to
+     * @throws RuntimeException thrown if there is already an effect attached
+     */
+    public void attachTo(ImmersiveEffect effect) throws RuntimeException {
+        if(mEffect != null) {
+            throw new RuntimeException("Previous effect is still attached, call detach() first");
+        }
+        mEffect = effect;
+        mEffect.addParameter(mParameter);
+    }
+
+    /**
+     * Detaches touch navigation from the effect it is attached to and removes the toggle parameter.
+     */
+    public void detach() {
+        mEffect.removeParameter(mParameter);
+        mEffect = null;
+    }
+
+    /**
+     * Activates touch navigation.
+     */
+    public void activate() {
+        mSpectaculumView.setOnTouchListener(mOnTouchListener);
+
+        // Store touch enabled state and enable touch which is required for this to work
+        mSpectaculumViewTouchEnabled = mSpectaculumView.isTouchEnabled();
+        mSpectaculumView.setTouchEnabled(true);
+
+        mActive = true;
+    }
+
+    /**
+     * Deactivates touch navigation.
+     */
+    public void deactivate() {
+        mSpectaculumView.setOnTouchListener(null);
+        mSpectaculumView.setTouchEnabled(mSpectaculumViewTouchEnabled);
+        mActive = false;
+    }
+
+    private void setRotation(float x, float y) {
+        // Set rotation matrix
+        GLUtils.Matrix.setRotateEulerM(mRotationMatrix, 0, x, y, 0);
+
+        // Update effect and thus the viewport too
+        mEffect.setRotationMatrix(mRotationMatrix);
+    }
+
+    private View.OnTouchListener mOnTouchListener = new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            return mActive && mGestureDetector.onTouchEvent(event);
+        }
+    };
+
+    private GestureDetector.SimpleOnGestureListener mOnGestureListener = new GestureDetector.SimpleOnGestureListener() {
+
+        @Override
+        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+            // Scale the scroll/panning distance to rotation degrees
+            // The view's with and height are mapped to 180 degree each
+            // TODO map motion event positions from view to the rendered sphere and derive rotation
+            //      angles to keep touchscreen positions and sphere positions in sync
+            mPanX += distanceX / mSpectaculumView.getWidth() * 180f;
+            mPanY += distanceY / mSpectaculumView.getHeight() * 180f;
+
+            // Clamp horizontal rotation to avoid rotations beyond 90 degree which inverts the vertical
+            // rotation and makes rotation handling more complicated
+            mPanY = LibraryHelper.clamp(mPanY, -90, 90);
+
+            // Apply the panning to the viewport
+            // Horizontal panning along the view's X axis translates to a rotation around the viewport's Y axis
+            // Vertical panning along the view's Y axis translates to a rotation around the viewport's X axis
+            setRotation(-mPanY, -mPanX);
+            return true;
+        }
+
+        @Override
+        public boolean onDoubleTap(MotionEvent e) {
+            // Reset rotation/viewport to initial value
+            mPanX = 0;
+            mPanY = 0;
+            setRotation(0, 0);
+            return true;
+        }
+    };
+}
+Spectaculum-Demo/src/main/java/net/protyposis/android/spectaculumdemo/testeffect/InterlaceEffect.java
+public class InterlaceEffect extends ShaderEffect {
+    @Override
+    protected TextureShaderProgram initShaderProgram() {
+        final InterlaceShaderProgram shaderProgram = new InterlaceShaderProgram();
+
+        addParameter(new FloatParameter("Opacity", 0f, 1f, 0.5f, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                shaderProgram.setOpacity(value);
+            }
+        }));
+
+        addParameter(new IntegerParameter("Distance", 1, 10, 5, new IntegerParameter.Delegate() {
+            @Override
+            public void setValue(Integer value) {
+                shaderProgram.setDistance(value);
+            }
+        }));
+
+        return shaderProgram;
+    }
+}
+Spectaculum-Core/src/main/java/net/protyposis/android/spectaculum/effects/Parameter.java
+public interface Parameter<T> {
+
+    interface Delegate<T> {
+        void setValue(T value);
+    }
+
+    /**
+     * Callback interface for parameter events.
+     */
+    interface Listener {
+        /**
+         * Gets called when the value of a parameter has changed.
+         * @param parameter the parameter whose value has changed
+         */
+        void onParameterChanged(Parameter parameter);
+    }
+
+    /**
+     * Gets the name of the parameter.
+     */
+    String getName();
+
+    /**
+     * Gets the description of the parameter. Returns null if no description has been set.
+     */
+    String getDescription();
+
+    /**
+     * Resets the parameter to its default value.
+     */
+    void reset();
+
+    /**
+     * Sets an event listener to listen for parameter value change events.
+     * @see Listener#onParameterChanged(Parameter)
+     * @param listener the listener to notify of events
+     * @deprecated Will be removed in next major version, use {@link #addListener} instead
+     */
+    void setListener(Listener listener);
+
+    /**
+     * Adds an event listener to listen for parameter value change events.
+     * @see Listener#onParameterChanged(Parameter)
+     * @param listener the listener to notify of events
+     */
+    void addListener(Listener listener);
+
+    /**
+     * Removes an event listener added with {@link #addListener}.
+     * @param listener the listener to remove
+     */
+    void removeListener(Listener listener);
+
+    /**
+     * Sets a ParameterHandler on which parameter value changes will be executed. Parameter values
+     * need to be set on the GL thread where the effect that the parameter belongs is active, and
+     * this handler can be used to hand the parameter setting over to the GL thread.
+     * If no handler is set, parameters will be set on the caller thread.
+     * @param handler the parameter handler to set, or null to unset
+     */
+    void setHandler(ParameterHandler handler);
+}
+Spectaculum-Effect-QrMarker/src/main/java/net/protyposis/android/spectaculum/effects/QrMarkerEffect.java
+public class QrMarkerEffect extends BaseEffect {
+
+    private GaussShaderProgram mGaussShader;
+    private GradientShaderProgram mGradientShader;
+    private CannyShaderProgram mCannyShader;
+    private QrResponseShaderProgram mQrResponseShader;
+    private ConsenseShaderProgram mConsensusShader;
+
+    private Framebuffer mFramebuffer1;
+    private Framebuffer mFramebuffer2;
+
+    private TexturedRectangle mTexturedRectangle;
+
+    private CannyEdgeEffect mCannyEdgeEffect;
+
+    public QrMarkerEffect() {
+        mCannyEdgeEffect = new CannyEdgeEffect();
+    }
+
+    @Override
+    public void init(int width, int height) {
+        // PART OF THE UGLY HACK described in setTextureSizeHack
+        // Cannot call it on base class QrMarkerShaderProgram because it is hidden outside its package
+        GaussShaderProgram.setTextureSizeHack(width, height);
+
+        mGaussShader = new GaussShaderProgram();
+        mGaussShader.setTextureSize(width, height);
+
+        mGradientShader = new GradientShaderProgram();
+        mGradientShader.setTextureSize(width, height);
+
+        mCannyShader = new CannyShaderProgram();
+        mCannyShader.setTextureSize(width, height);
+
+        mQrResponseShader = new QrResponseShaderProgram();
+        mQrResponseShader.setTextureSize(width, height);
+
+        mConsensusShader = new ConsenseShaderProgram();
+        mConsensusShader.setTextureSize(width, height);
+
+        mFramebuffer1 = new Framebuffer(width, height);
+        mFramebuffer2 = new Framebuffer(width, height);
+
+        mTexturedRectangle = new TexturedRectangle();
+        mTexturedRectangle.reset();
+
+        setInitialized();
+    }
+
+    @Override
+    public void apply(Texture2D source, Framebuffer target) {
+        applyCannyEdge(source, mFramebuffer1);
+
+        mFramebuffer2.bind();
+        mQrResponseShader.use();
+        mQrResponseShader.setTexture(mFramebuffer1.getTexture());
+        mTexturedRectangle.draw(mQrResponseShader);
+
+        target.bind();
+        mConsensusShader.use();
+        mConsensusShader.setTexture(mFramebuffer2.getTexture());
+        mTexturedRectangle.draw(mConsensusShader);
+    }
+
+    private void applyCannyEdge(Texture2D source, Framebuffer target) {
+        mFramebuffer1.bind();
+        mGaussShader.use();
+        mGaussShader.setTexture(source);
+        mTexturedRectangle.draw(mGaussShader);
+
+        mFramebuffer2.bind();
+        mGradientShader.use();
+        mGradientShader.setTexture(mFramebuffer1.getTexture());
+        mTexturedRectangle.draw(mGradientShader);
+
+        target.bind();
+        mCannyShader.use();
+        mCannyShader.setTexture(mFramebuffer2.getTexture());
+        mTexturedRectangle.draw(mCannyShader);
+    }
+
+    public CannyEdgeEffect getCannyEdgeEffect() {
+        return mCannyEdgeEffect;
+    }
+
+    /**
+     * The CannyEdge Effect is a subeffect of the QrMarker Effect, it is therefore more efficient
+     * to share the resources and reuse a common cannyedge subroutine than to instantiate it as
+     * a separate effect. If one of the two effects is needed, the other comes with it for free.
+     */
+    public class CannyEdgeEffect extends BaseEffect {
+
+        @Override
+        public void init(int width, int height) {
+            if(!QrMarkerEffect.this.isInitialized()) {
+                QrMarkerEffect.this.init(width, height);
+            }
+        }
+
+        @Override
+        public void apply(Texture2D source, Framebuffer target) {
+            applyCannyEdge(source, target);
+        }
+    }
+}
+Spectaculum-Core/src/main/java/net/protyposis/android/spectaculum/effects/SobelEffect.java
+public class SobelEffect extends ShaderEffect {
+
+    private float mLow, mHigh;
+    private float mR, mG, mB;
+
+    public SobelEffect() {
+        super("Sobel Edge Detect");
+    }
+
+    @Override
+    protected TextureShaderProgram initShaderProgram() {
+        final TextureSobelShaderProgram sobelShader = new TextureSobelShaderProgram();
+
+        mLow = 0.3f;
+        mHigh = 0.8f;
+        mR = 0.0f;
+        mG = 1.0f;
+        mB = 0.0f;
+
+        addParameter(new FloatParameter("Low", 0.0f, 1.0f, mLow, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mLow = value;
+                sobelShader.setThreshold(mLow, mHigh);
+            }
+        }));
+        addParameter(new FloatParameter("High", 0.0f, 1.0f, mHigh, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mHigh = value;
+                sobelShader.setThreshold(mLow, mHigh);
+            }
+        }));
+        addParameter(new FloatParameter("Red", 0.0f, 1.0f, mR, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mR = value;
+                sobelShader.setColor(mR, mG, mB);
+            }
+        }));
+        addParameter(new FloatParameter("Green", 0.0f, 1.0f, mG, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mG = value;
+                sobelShader.setColor(mR, mG, mB);
+            }
+        }));
+        addParameter(new FloatParameter("Blue", 0.0f, 1.0f, mB, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mB = value;
+                sobelShader.setColor(mR, mG, mB);
+            }
+        }));
+
+        return sobelShader;
+    }
+}
+Spectaculum-Core/src/main/java/net/protyposis/android/spectaculum/effects/NoEffect.java
+public class NoEffect extends ShaderEffect {
+
+    public NoEffect() {
+        super("None");
+    }
+
+    @Override
+    protected TextureShaderProgram initShaderProgram() {
+        return new TextureShaderProgram();
+    }
+}
+Spectaculum-Core/src/main/java/net/protyposis/android/spectaculum/effects/KernelEmbossEffect.java
+public class KernelEmbossEffect extends ShaderEffect {
+    @Override
+    protected TextureShaderProgram initShaderProgram() {
+        return new TextureKernelShaderProgram(TextureKernelShaderProgram.Kernel.EMBOSS);
+    }
+}
+Spectaculum-Core/src/main/java/net/protyposis/android/spectaculum/gles/GLUtils.java
+public class GLUtils {
+
+    private static final String TAG = GLUtils.class.getSimpleName();
+
+    public static boolean HAS_GLES30;
+    public static boolean HAS_GL_OES_texture_half_float;
+    public static boolean HAS_GL_OES_texture_float;
+    public static boolean HAS_FLOAT_FRAMEBUFFER_SUPPORT;
+    public static boolean HAS_GPU_TEGRA;
+
+    /**
+     * Sets the static feature flags. Needs to be called from a GLES context.
+     */
+    public static void init() {
+        HAS_GLES30 = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2;
+        HAS_GL_OES_texture_half_float = checkExtension("GL_OES_texture_half_float");
+        HAS_GL_OES_texture_float = checkExtension("GL_OES_texture_float");
+        HAS_GPU_TEGRA = GLES20.glGetString(GLES20.GL_RENDERER).toLowerCase().contains("tegra");
+
+        /* Try to create a framebuffer with an attached floating point texture. If this fails,
+         * the device does not support floating point FB attachments and needs to fall back to
+         * byte textures ... and possibly deactivate features that demand FP textures.
+         */
+        if(HAS_GL_OES_texture_half_float || HAS_GL_OES_texture_float) {
+            try {
+                // must be set to true before the check, otherwise the fallback kicks in
+                HAS_FLOAT_FRAMEBUFFER_SUPPORT = true;
+                new Framebuffer(8, 8);
+            } catch (RuntimeException e) {
+                Log.w(TAG, "float framebuffer test failed");
+                HAS_FLOAT_FRAMEBUFFER_SUPPORT = false;
+                GLUtils.clearError();
+            }
+        }
+    }
+
+    /**
+     * Checks if the system supports OpenGL ES 2.0.
+     */
+    public static boolean isGlEs2Supported(Context context) {
+        ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        ConfigurationInfo configurationInfo = activityManager.getDeviceConfigurationInfo();
+        return configurationInfo != null && configurationInfo.reqGlEsVersion >= 0x20000;
+    }
+
+    private static void checkError(String operation, boolean throwException) {
+        int errorCount = 0;
+        int error;
+        String msg = null;
+
+        while((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR) {
+            msg = "GL ERROR " + String.format("0x%X", error) + " @ " + operation;
+            Log.e(TAG, msg);
+            errorCount++;
+        }
+
+        if(throwException && errorCount > 0) {
+            throw new RuntimeException(msg);
+        }
+    }
+
+    public static void checkError(String operation) {
+        checkError(operation, true);
+    }
+
+    public static void clearError() {
+        checkError("error clearance", false);
+    }
+
+    public static String[] getExtensions() {
+        String extensionsString = GLES20.glGetString(GLES20.GL_EXTENSIONS);
+        if(extensionsString != null) {
+            return extensionsString.split(" ");
+        }
+        return new String[0];
+    }
+
+    /**
+     * Checks if an extension is supported.
+     */
+    public static boolean checkExtension(String query) {
+        for(String ext : getExtensions()) {
+            if(ext.equals(query)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void printSysConfig() {
+        for(String ext : GLUtils.getExtensions()) {
+            Log.d(TAG, ext);
+        }
+        Log.d(TAG, GLES20.glGetString(GLES20.GL_SHADING_LANGUAGE_VERSION));
+        Log.d(TAG, GLES20.glGetString(GLES20.GL_VENDOR));
+        Log.d(TAG, GLES20.glGetString(GLES20.GL_RENDERER));
+        Log.d(TAG, GLES20.glGetString(GLES20.GL_VERSION));
+    }
+
+    public static Bitmap getFrameBuffer(int width, int height) {
+        // read pixels from GLES context
+        long startTime = SystemClock.elapsedRealtime();
+        ByteBuffer buffer = ByteBuffer.allocateDirect(width * height * 4).order(ByteOrder.LITTLE_ENDIAN);
+        GLES20.glReadPixels(0, 0, width, height, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buffer);
+        GLUtils.checkError("glReadPixels");
+        buffer.rewind();
+        Log.d(TAG, "glReadPixels " + (SystemClock.elapsedRealtime() - startTime) + "ms");
+
+        // transfer pixels to bitmap
+        Bitmap bmp1 = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        bmp1.copyPixelsFromBuffer(buffer);
+
+        // horizontally flip bitmap to make it upright, since GL origin is at bottom left
+        android.graphics.Matrix matrix = new android.graphics.Matrix();
+        matrix.setRotate(180);
+        matrix.postScale(-1, 1);
+        Bitmap bmp2 = Bitmap.createBitmap(bmp1, 0, 0, bmp1.getWidth(), bmp1.getHeight(), matrix, true);
+        bmp1.recycle();
+        Log.d(TAG, "glReadPixels+rotate " + (SystemClock.elapsedRealtime() - startTime) + "ms");
+
+        return bmp2;
+    }
+
+    public static boolean saveBitmapToFile(Bitmap bmp, File file) {
+        try {
+            BufferedOutputStream bos = null;
+            try {
+                bos = new BufferedOutputStream(new FileOutputStream(file));
+
+                // compress to file
+                bmp.compress(Bitmap.CompressFormat.PNG, 90, bos);
+            } finally {
+                if (bos != null) bos.close();
+            }
+            return true;
+        } catch (IOException e) {
+            Log.e(TAG, "failed to save frame", e);
+        }
+        return false;
+    }
+
+    public static void saveFramebufferToFile(int width, int height, File file) {
+        Bitmap bmp = getFrameBuffer(width, height);
+        if(saveBitmapToFile(bmp, file)) {
+            Log.d(TAG, "frame saved to " + file.getName());
+        }
+        bmp.recycle();
+    }
+
+    public static class Matrix {
+        /**
+         * Android's {@link android.opengl.Matrix#setRotateEulerM(float[], int, float, float, float)}
+         * is broken and returns an invalid matrix when rotating around the Y axis.
+         *
+         * See comment #3 in https://code.google.com/p/android/issues/detail?id=12964 for fix
+         * @see android.opengl.Matrix#setRotateEulerM(float[], int, float, float, float)
+         */
+        public static void setRotateEulerM(float[] rm, int rmOffset, float x, float y, float z) {
+            x = x * 0.01745329f;
+            y = y * 0.01745329f;
+            z = z * 0.01745329f;
+            float sx = (float) Math.sin(x);
+            float sy = (float) Math.sin(y);
+            float sz = (float) Math.sin(z);
+            float cx = (float) Math.cos(x);
+            float cy = (float) Math.cos(y);
+            float cz = (float) Math.cos(z);
+            float cxsy = cx * sy;
+            float sxsy = sx * sy;
+
+            rm[rmOffset + 0] = cy * cz;
+            rm[rmOffset + 1] = -cy * sz;
+            rm[rmOffset + 2] = sy;
+            rm[rmOffset + 3] = 0.0f;
+
+            rm[rmOffset + 4] = sxsy * cz + cx * sz;
+            rm[rmOffset + 5] = -sxsy * sz + cx * cz;
+            rm[rmOffset + 6] = -sx * cy;
+            rm[rmOffset + 7] = 0.0f;
+
+            rm[rmOffset + 8] = -cxsy * cz + sx * sz;
+            rm[rmOffset + 9] = cxsy * sz + sx * cz;
+            rm[rmOffset + 10] = cx * cy;
+            rm[rmOffset + 11] = 0.0f;
+
+            rm[rmOffset + 12] = 0.0f;
+            rm[rmOffset + 13] = 0.0f;
+            rm[rmOffset + 14] = 0.0f;
+            rm[rmOffset + 15] = 1.0f;
+        }
+    }
+}
+Spectaculum-Core/src/main/java/net/protyposis/android/spectaculum/effects/KernelEdgeDetectEffect.java
+public class KernelEdgeDetectEffect extends ShaderEffect {
+    @Override
+    protected TextureShaderProgram initShaderProgram() {
+        return new TextureKernelShaderProgram(TextureKernelShaderProgram.Kernel.EDGE_DETECT);
+    }
+}
+Spectaculum-Core/src/main/java/net/protyposis/android/spectaculum/effects/KernelSharpenEffect.java
+public class KernelSharpenEffect extends ShaderEffect {
+    @Override
+    protected TextureShaderProgram initShaderProgram() {
+        return new TextureKernelShaderProgram(TextureKernelShaderProgram.Kernel.SHARPEN);
+    }
+}
+Spectaculum-Core/src/main/java/net/protyposis/android/spectaculum/effects/ColorFilterEffect.java
+public class ColorFilterEffect extends ShaderEffect {
+
+    private float mR, mG, mB, mA;
+
+    @Override
+    protected TextureShaderProgram initShaderProgram() {
+        final ColorFilterShaderProgram colorFilterShader = new ColorFilterShaderProgram();
+
+        mR = 1.0f;
+        mG = 0.0f;
+        mB = 0.0f;
+        mA = 1.0f;
+
+        addParameter(new FloatParameter("Red", 0.0f, 1.0f, mR, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mR = value;
+                colorFilterShader.setColor(mR, mG, mB, mA);
+            }
+        }));
+        addParameter(new FloatParameter("Green", 0.0f, 1.0f, mG, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mG = value;
+                colorFilterShader.setColor(mR, mG, mB, mA);
+            }
+        }));
+        addParameter(new FloatParameter("Blue", 0.0f, 1.0f, mB, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mB = value;
+                colorFilterShader.setColor(mR, mG, mB, mA);
+            }
+        }));
+        addParameter(new FloatParameter("Alpha", 0.0f, 1.0f, mA, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mA = value;
+                colorFilterShader.setColor(mR, mG, mB, mA);
+            }
+        }));
+
+        return colorFilterShader;
+    }
+}
+Spectaculum-Core/src/main/java/net/protyposis/android/spectaculum/effects/StackEffect.java
+public class StackEffect extends BaseEffect {
+
+    private List<Effect> mEffects;
+    private Framebuffer mFramebuffer;
+
+    public StackEffect(String name) {
+        super(name);
+        mEffects = new ArrayList<>();
+    }
+
+    public StackEffect(String name, Effect... effects) {
+        this(name);
+        addEffects(effects);
+    }
+
+    public StackEffect() {
+        this((String)null);
+    }
+
+    public StackEffect(Effect... effects) {
+        this(null, effects);
+    }
+
+    public void addEffects(Effect... effects) {
+        Collections.addAll(mEffects, effects);
+    }
+
+    @Override
+    public void init(int width, int height) {
+        // Create an internal framebuffer which is required to apply a sequence of effects
+        mFramebuffer = new Framebuffer(width, height);
+
+        setEventBlocking(true);
+
+        // Initialize all effects
+        for (Effect e : mEffects) {
+            e.init(width, height);
+
+            // Add effect parameters
+            for(Parameter p : e.getParameters()) {
+                addParameter(p);
+            }
+        }
+
+        setEventBlocking(false);
+
+        setInitialized();
+    }
+
+    @Override
+    public void apply(Texture2D source, Framebuffer target) {
+        Iterator<Effect> i = mEffects.iterator();
+
+        /*
+         * The first source texture must always be the passed in texture, the last output framebuffer
+         * must always be the passed in target framebuffer. In between, we need to switch source
+         * textures and target framebuffers between the passed in external framebuffer and the internal
+         * framebuffer, because we cannot read and write to the same framebuffer in one render pass.
+         * If the number of effects is even, we start by writing the internal framebuffer, else we
+         * start with the external framebuffer.
+         */
+        Framebuffer internalFB = mFramebuffer;
+        Framebuffer externalFB = target;
+        boolean useInternalFB = mEffects.size() % 2 == 0; // keeps track of which framebuffer to use as target
+
+        while(i.hasNext()) {
+            Effect e = i.next();
+
+            if(i.hasNext()) {
+                e.apply(source, useInternalFB ? internalFB : externalFB);
+                source = useInternalFB ? internalFB.getTexture() : externalFB.getTexture();
+                useInternalFB = !useInternalFB; // switch framebuffer flag
+            } else {
+                // Last effect; always write result to the target framebuffer
+                e.apply(source, target);
+            }
+        }
+    }
+}
+Spectaculum-Core/src/main/java/net/protyposis/android/spectaculum/effects/SimpleToonEffect.java
+public class SimpleToonEffect extends ShaderEffect {
+    @Override
+    protected TextureShaderProgram initShaderProgram() {
+        return new TextureToonShaderProgram();
+    }
+}
+Spectaculum-Effect-Immersive/src/main/java/net/protyposis/android/spectaculum/effects/ImmersiveEffect.java
+public class ImmersiveEffect extends ShaderEffect {
+
+    /**
+     * Image source render mode.
+     */
+    public enum Mode {
+        /**
+         * Monoscopic rendering of mono sources.
+         */
+        MONO,
+
+        /**
+         * Stereoscopic rendering of side-by-side (SBS) sources, where two pictures are packed
+         * horizontally in the image source.
+         */
+        STEREO_SBS,
+
+        /**
+         * Stereoscopic rendering of top-and-bottom (TAB) sources, where two pictures are packed
+         * vertically in the image source.
+         */
+        STEREO_TAB,
+    }
+
+    private EquirectangularSphereShaderProgram mShaderProgram;
+    private float mRotX, mRotY, mRotZ;
+    private float[] mRotationMatrix = new float[16];
+    private Mode mMode;
+
+    private FloatParameter mParameterRotX, mParameterRotY, mParameterRotZ;
+    private EnumParameter<Mode> mParameterMode;
+
+    public ImmersiveEffect() {
+        mRotX = 0.0f;
+        mRotY = 0.0f;
+        mRotZ = 0.0f;
+        Matrix.setIdentityM(mRotationMatrix, 0);
+        mMode = Mode.MONO;
+    }
+
+    @Override
+    protected TextureShaderProgram initShaderProgram() {
+        mShaderProgram = new EquirectangularSphereShaderProgram();
+
+        mParameterRotX = new FloatParameter("RotX", -360.0f, 360.0f, mRotX, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mRotX = value;
+                updateRotationMatrix();
+            }
+        }, "Sets the rotation angle around the X-axis in degrees");
+        mParameterRotY = new FloatParameter("RotY", -360.0f, 360.0f, mRotY, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mRotY = -value; // invert to rotate to the right with a positive value
+                updateRotationMatrix();
+            }
+        }, "Sets the rotation angle around the Y-axis in degrees");
+        mParameterRotZ = new FloatParameter("RotZ", -360.0f, 360.0f, mRotZ, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mRotZ = value;
+                updateRotationMatrix();
+            }
+        }, "Sets the rotation angle around the Z-axis in degrees");
+        mParameterMode = new EnumParameter<>("Mode", Mode.class, mMode, new EnumParameter.Delegate<Mode>() {
+            @Override
+            public void setValue(Mode value) {
+                mMode = value;
+                mShaderProgram.setMode(mMode.ordinal());
+            }
+        }, "Sets the render mode");
+
+        addParameter(mParameterRotX);
+        addParameter(mParameterRotY);
+        addParameter(mParameterRotZ);
+        addParameter(mParameterMode);
+
+        return mShaderProgram;
+    }
+
+    private void updateRotationMatrix() {
+        GLUtils.Matrix.setRotateEulerM(mRotationMatrix, 0, mRotX, mRotY, mRotZ);
+        mShaderProgram.setRotationMatrix(mRotationMatrix);
+    }
+
+    /**
+     * Sets the rotation matrix directly without going through the 3 parameters and provoking
+     * lots of function calls (rotation matrix can be updated very frequently).
+     * @param R a 4x4 rotation matrix
+     */
+    public void setRotationMatrix(float[] R) {
+        if(R.length < 16) {
+            throw new RuntimeException("4x4 matrix expected");
+        }
+
+        // Take a copy of the matrix into the local variable
+        System.arraycopy(R, 0, mRotationMatrix, 0, 16);
+
+        if(isInitialized()) {
+            // Update the shader rotation matrix on the correct thread
+            getParameterHandler().post(mRotationMatrixUpdateRunnable);
+
+            // Fire event to trigger a view update
+            fireEffectChanged();
+        }
+    }
+
+    /**
+     * Gets the rotation matrix. The rotation matrix will be written into the supplied
+     * parameter.
+     * @param R a 4x4 output matrix
+     */
+    public void getRotationMatrix(float[] R) {
+        if(R.length < 16) {
+            throw new RuntimeException("4x4 matrix expected");
+        }
+
+        // Copy the local matrix into the output matrix
+        System.arraycopy(mRotationMatrix, 0, R, 0, 16);
+    }
+
+    /**
+     * Sets the rotation along the Y-axis.
+     * @param rotX rotation in degrees
+     */
+    public void setRotationX(float rotX) {
+        if(isInitialized()) {
+            mParameterRotX.setValue(rotX);
+        } else {
+            mRotX = rotX;
+        }
+    }
+
+    /**
+     * Sets the rotation along the Y-axis.
+     * @param rotY rotation in degrees
+     */
+    public void setRotationY(float rotY) {
+        if(isInitialized()) {
+            mParameterRotY.setValue(rotY);
+        } else {
+            mRotX = rotY;
+        }
+    }
+
+    /**
+     * Sets the rotation along the Z-axis.
+     * @param rotZ rotation in degrees
+     */
+    public void setRotationZ(float rotZ) {
+        if(isInitialized()) {
+            mParameterRotZ.setValue(rotZ);
+        } else {
+            mRotX = rotZ;
+        }
+    }
+
+    /**
+     * Sets the content render mode. Should be set to match the image source.
+     * @param mode the image source render mode
+     */
+    public void setMode(Mode mode) {
+        if(isInitialized()) {
+            mParameterMode.setValue(mode);
+        } else {
+            mMode = mode;
+        }
+    }
+
+    private Runnable mRotationMatrixUpdateRunnable = new Runnable() {
+        @Override
+        public void run() {
+            mShaderProgram.setRotationMatrix(mRotationMatrix);
+        }
+    };
+}
+Spectaculum-Core/src/main/java/net/protyposis/android/spectaculum/effects/FlipEffect.java
+public class FlipEffect extends ShaderEffect {
+
+    public enum Mode {
+        NONE,
+        VERTICAL,
+        HORIZONTAL,
+        BOTH
+    }
+
+    private Mode mMode;
+
+    @Override
+    protected TextureShaderProgram initShaderProgram() {
+        final TextureFlipShaderProgram flipShader = new TextureFlipShaderProgram();
+        mMode = Mode.VERTICAL;
+
+        addParameter(new EnumParameter<>("Mode", Mode.class, mMode, new EnumParameter.Delegate<Mode>() {
+            @Override
+            public void setValue(Mode value) {
+                mMode = value;
+                flipShader.setMode(mMode.ordinal());
+            }
+        }));
+
+        return flipShader;
+    }
+}
+Spectaculum-Effect-FlowAbs/src/main/java/net/protyposis/android/spectaculum/effects/FlowAbsSubEffect.java
+public abstract class FlowAbsSubEffect extends BaseEffect {
+
+    protected FlowAbsEffect mFlowAbsEffect;
+
+    FlowAbsSubEffect(String name) {
+        super(name);
+    }
+
+    FlowAbsSubEffect() {
+    }
+
+    @Override
+    public void init(int width, int height) {
+        if(!mFlowAbsEffect.isInitialized()) {
+            mFlowAbsEffect.init(width, height);
+        }
+    }
+
+    FlowAbsSubEffect init(FlowAbsEffect flowAbsEffect) {
+        mFlowAbsEffect = flowAbsEffect;
+        return this;
+    }
+}
+Spectaculum-Core/src/main/java/net/protyposis/android/spectaculum/effects/ContrastBrightnessAdjustmentEffect.java
+public class ContrastBrightnessAdjustmentEffect extends ShaderEffect {
+
+    private float mContrast;
+    private float mBrightness;
+
+    @Override
+    protected TextureShaderProgram initShaderProgram() {
+        final ContrastBrightnessAdjustmentShaderProgram adjustmentsShader = new ContrastBrightnessAdjustmentShaderProgram();
+
+        mContrast = 1.0f;
+        mBrightness = 1.0f;
+
+        addParameter(new FloatParameter("Contrast", 0.0f, 5.0f, mContrast, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mContrast = value;
+                adjustmentsShader.setContrast(mContrast);
+            }
+        }));
+        addParameter(new FloatParameter("Brightness", 0.0f, 5.0f, mBrightness, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mBrightness = value;
+                adjustmentsShader.setBrightness(mBrightness);
+            }
+        }));
+
+        return adjustmentsShader;
+    }
+}
+Spectaculum-Core/src/main/java/net/protyposis/android/spectaculum/effects/EffectException.java
+public class EffectException extends Exception {
+    public EffectException() {
+    }
+
+    public EffectException(String detailMessage) {
+        super(detailMessage);
+    }
+
+    public EffectException(String detailMessage, Throwable throwable) {
+        super(detailMessage, throwable);
+    }
+
+    public EffectException(Throwable throwable) {
+        super(throwable);
+    }
+}
+Spectaculum-Core/src/main/java/net/protyposis/android/spectaculum/effects/KernelBlurEffect.java
+public class KernelBlurEffect extends ShaderEffect {
+    @Override
+    protected TextureShaderProgram initShaderProgram() {
+        return new TextureKernelShaderProgram(TextureKernelShaderProgram.Kernel.BLUR);
+    }
+}
+Spectaculum-Core/src/main/java/net/protyposis/android/spectaculum/effects/Effect.java
+public interface Effect {
+
+    /**
+     * Callback interface for effect events.
+     */
+    interface Listener {
+        /**
+         * Gets called when a parameter of the effect has changed.
+         * @param effect the effect whose parameter has changed
+         */
+        void onEffectChanged(Effect effect);
+
+        /**
+         * Gets called when a parameter is added to an effect.
+         * @param effect the effect to which the parameter was added
+         * @param parameter the added parameter
+         */
+        void onParameterAdded(Effect effect, Parameter parameter);
+
+        /**
+         * Gets called when a parameter is removed from an effect.
+         * @param effect the effect from which the parameter was removed
+         * @param parameter the removed parameter
+         */
+        void onParameterRemoved(Effect effect, Parameter parameter);
+    }
+
+    /**
+     * Gets the name of the effect.
+     * @return the name of the effect
+     */
+    String getName();
+
+    /**
+     * Initializes the effect by loading all required resources (shaders, framebuffers, textures,
+     * subeffects, ...) and preparing it for usage. The resolution of the render pipeline respectively
+     * the texture resolution for internal processing must be supplied.
+     * @param width the texture width
+     * @param height the texture height
+     */
+    void init(int width, int height);
+
+    /**
+     * Returns the initialization status of the effect.
+     * @return true if the effect is initialized and ready to use, else false
+     */
+    boolean isInitialized();
+
+    /**
+     * Applies the effect to a source texture and writes it to the target framebuffer. The source
+     * texture is the input image data that the effect is applied to, and the target can be an
+     * intermediate framebuffer (for chaining to another effect) or the screen for direct output.
+     * @param source the source texture where the input image is read from
+     * @param target the target framebuffer where the result with the applied effect is written to
+     */
+    void apply(Texture2D source, Framebuffer target);
+
+    /**
+     * Sets a parameter handler for the parameters of this effect. The parameter handler takes
+     * care that the parameter values are set on the correct thread (i.e. the GL thread).
+     * Setting the handler on the effect makes sure that it is automatically set on its parameters.
+     * @see Parameter#setHandler(ParameterHandler)
+     * @param handler a handler to set, or null to unset
+     */
+    void setParameterHandler(ParameterHandler handler);
+
+    /**
+     * Adds a parameter to the effect. Parameters can be used to parameterize parameters of the effect :)
+     * Triggers {@link Listener#onParameterAdded(Effect, Parameter)} on an attached listener.
+     * @see Parameter
+     * @param parameter the parameter to add
+     */
+    void addParameter(Parameter parameter);
+
+    /**
+     * Removes a parameter from the effect.
+     * Triggers {@link Listener#onParameterRemoved(Effect, Parameter)} on an attached listener.
+     * @see Parameter
+     * @param parameter the parameter to remove
+     */
+    void removeParameter(Parameter parameter);
+
+    /**
+     * Gets a list of available parameters of the effect.
+     * @return list of effect parameters
+     */
+    List<Parameter> getParameters();
+
+    /**
+     * Checks if this effect has any parameters.
+     * @return true if there are parameters attached, else false
+     */
+    boolean hasParameters();
+
+    /**
+     * Resets all settings and parameters to their initial state.
+     */
+    void reset();
+
+    /**
+     * Sets a listener that gets called when any parameter value of the effect has changed.
+     * @see Listener#onEffectChanged(Effect)
+     * @param listener the listener to call back
+     * @deprecated Will be removed in next major version, use {@link #addListener} instead
+     */
+    void setListener(Listener listener);
+
+    /**
+     * Adds a listener that gets called when any parameter value of the effect has changed.
+     * @see Listener#onEffectChanged(Effect)
+     * @param listener the listener to call back
+     */
+    void addListener(Listener listener);
+
+    /**
+     * Removes a listener that has been added with {@link #addListener}.
+     * @param listener the listener to remove
+     */
+    void removeListener(Listener listener);
+}
+Spectaculum-Effect-Immersive/src/main/java/net/protyposis/android/spectaculum/effects/ImmersiveSensorNavigation.java
+public class ImmersiveSensorNavigation implements SensorEventListener {
+
+    private static final String TAG = ImmersiveSensorNavigation.class.getSimpleName();
+
+    private Context mContext;
+    private ImmersiveEffect mEffect;
+    private BooleanParameter mParameter;
+    private SensorManager mSensorManager;
+    private Sensor mSensor;
+    private boolean mActive;
+    private float[] mRotationMatrix = new float[16];
+    private float[] mRemappedRotationMatrix = new float[16];
+    private float[] mInitialRotationMatrix = null;
+
+    /**
+     * Creates a sensor navigation instance for the immersive effect.
+     * @param context context providing the sensor manager
+     * @throws RuntimeException if no rotation sensor is available
+     */
+    public ImmersiveSensorNavigation(Context context) throws RuntimeException {
+        mContext = context;
+
+        // Get sensor
+        mSensorManager = (SensorManager) mContext.getSystemService(Context.SENSOR_SERVICE);
+        mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+
+        if(mSensor == null) {
+            throw new RuntimeException("No rotation sensor available");
+        }
+
+        // Make a UI handler for activation state toggling
+        final Handler h = new Handler();
+
+        // Create an effect parameter to toggle the sensor navigation on/off
+        mParameter = new BooleanParameter("SensorNav", false, new BooleanParameter.Delegate() {
+            @Override
+            public void setValue(final Boolean value) {
+                // Activate/deactivate on UI thread
+                // Parameters are usually set on the GL thread, so we need to transfer this back to the UI thread
+                h.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mActive = value;
+                        if(mActive) {
+                            activate();
+                        } else {
+                            deactivate();
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Attaches to the effect and adds parameter to toggle sensor navigation on/off.
+     * @param effect the effect to attach sensor navigation to
+     * @throws RuntimeException thrown if there is already an effect attached
+     */
+    public void attachTo(ImmersiveEffect effect) throws RuntimeException {
+        if(mEffect != null) {
+            throw new RuntimeException("Previous effect is still attached, call detach() first");
+        }
+        mEffect = effect;
+        mEffect.addParameter(mParameter);
+    }
+
+    /**
+     * Detaches sensor navigation from an effect.
+     */
+    public void detach() {
+        mEffect.removeParameter(mParameter);
+        mEffect = null;
+    }
+
+    /**
+     * Activates sensor input.
+     */
+    public void activate() {
+        mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_UI);
+        mActive = true;
+    }
+
+    /**
+     * Deactivates sensor input. Should be called when pausing a fragment or activity.
+     */
+    public void deactivate() {
+        mSensorManager.unregisterListener(this);
+        mInitialRotationMatrix = null; // reset matrix so it reinits on next activation
+        mActive = false;
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if(mEffect != null && mActive) {
+            // TODO understand those sensor coordinate spaces
+            // TODO find out how the sensor rotation can be mapped to the sphere shader correctly
+            // TODO should we store the initial rotation value to set the zero rotation point to the current phone rotation?
+
+            // Get the rotation matrix from the sensor
+            SensorManager.getRotationMatrixFromVector(mRotationMatrix, event.values);
+
+            // When the first sensor data comes in, we set the initial rotation matrix as
+            // "zero rotation point" to be able to calculate the relative rotation from the initial
+            // device rotation, instead of the absolute rotation from true north.
+            // Later, we subtract the initial rotation from the rotation matrix to get the relative rotation
+            if(mInitialRotationMatrix == null) {
+                mInitialRotationMatrix = new float[16];
+                // Matrix subtraction works by multiplying the inverse (Mb - Ma == inv(Ma) * Mb),
+                // so we directly store the inverse
+                Matrix.invertM(mInitialRotationMatrix, 0, mRotationMatrix, 0);
+            }
+
+            // Remove initial rotation
+            Matrix.multiplyMM(mRotationMatrix, 0, mInitialRotationMatrix, 0, mRotationMatrix, 0);
+
+            // Some axes seem like they need to be exchanged
+            Matrix.invertM(mRemappedRotationMatrix, 0, mRotationMatrix, 0);
+            // FIXME this does not seem to remap axes at all!?
+            //SensorManager.remapCoordinateSystem(mRotationMatrix, SensorManager.AXIS_X, SensorManager.AXIS_Z, mRemappedRotationMatrix);
+
+            // Debug output
+            //float[] orientation = new float[3];
+            //SensorManager.getOrientation(mRemappedRotationMatrix, orientation);
+            //debugOutputOrientationInDegree(orientation);
+
+            // Update effect and thus the viewport too
+            mEffect.setRotationMatrix(mRemappedRotationMatrix);
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+    }
+
+    private void debugOutputOrientationInDegree(float[] orientation) {
+        float azimuth = (float) Math.toDegrees(orientation[0]); // -z
+        float pitch = (float) Math.toDegrees(orientation[1]); // x
+        float roll = (float) Math.toDegrees(orientation[2]); // y
+        Log.d(TAG, azimuth + ", " + pitch + ", " + roll);
+    }
+}
+Spectaculum-Core/src/main/java/net/protyposis/android/spectaculum/effects/WatermarkEffect.java
+public class WatermarkEffect extends ShaderEffect {
+
+    public enum Alignment {
+        LOWER_LEFT,
+        UPPER_LEFT,
+        UPPER_RIGHT,
+        LOWER_RIGHT,
+        CENTER
+    }
+
+    private WatermarkShaderProgram mShaderProgram;
+    private float mScale;
+    private float mOpacity;
+    private float mMarginX, mMarginY;
+    private Alignment mAlignment;
+
+    private Bitmap mWatermarkBitmap;
+    private Texture2D mWatermarkTexture;
+
+    private FloatParameter mScaleParameter;
+    private FloatParameter mOpacityParameter;
+    private FloatParameter mMarginXParameter;
+    private FloatParameter mMarginYParameter;
+    private EnumParameter<Alignment> mAlignmentParameter;
+
+    public WatermarkEffect() {
+        mScale = 1.0f;
+        mOpacity = 0.8f;
+        mMarginX = mMarginY = 0.5f;
+        mAlignment = Alignment.LOWER_RIGHT;
+    }
+
+    @Override
+    protected TextureShaderProgram initShaderProgram() {
+        mShaderProgram = new WatermarkShaderProgram();
+
+        mScaleParameter = new FloatParameter("Scale", 0f, 10f, mScale, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mShaderProgram.setWatermarkScale(value);
+            }
+        });
+        addParameter(mScaleParameter);
+
+        mOpacityParameter = new FloatParameter("Opacity", 0f, 1f, mOpacity, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mShaderProgram.setWatermarkOpacity(value);
+            }
+        });
+        addParameter(mOpacityParameter);
+
+        mMarginXParameter = new FloatParameter("Margin X", -1f, 1f, mMarginX, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mMarginX = value;
+                mShaderProgram.setWatermarkMargin(mMarginX, mMarginY);
+            }
+        });
+        addParameter(mMarginXParameter);
+
+        mMarginYParameter = new FloatParameter("Margin Y", -1f, 1f, mMarginY, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mMarginY = value;
+                mShaderProgram.setWatermarkMargin(mMarginX, mMarginY);
+            }
+        });
+        addParameter(mMarginYParameter);
+
+        mAlignmentParameter = new EnumParameter<>("Alignment", Alignment.class, mAlignment, new EnumParameter.Delegate<Alignment>() {
+            @Override
+            public void setValue(Alignment value) {
+                mAlignment = value;
+                mShaderProgram.setWatermarkAlignment(mAlignment.ordinal());
+            }
+        });
+        addParameter(mAlignmentParameter);
+
+        if(mWatermarkBitmap != null) {
+            mWatermarkTexture = new Texture2D(mWatermarkBitmap);
+            mShaderProgram.setWatermark(mWatermarkTexture);
+        }
+
+        return mShaderProgram;
+    }
+
+    public void setWatermark(Bitmap watermark) {
+        // TODO clear previous texture
+        mWatermarkBitmap = watermark;
+        if(isInitialized()) {
+            mWatermarkTexture = new Texture2D(watermark);
+            mShaderProgram.setWatermark(mWatermarkTexture);
+        }
+    }
+
+    public void setScale(float scale) {
+        if(isInitialized()) {
+            mScaleParameter.setValue(scale);
+        } else {
+            mScale = scale;
+        }
+    }
+
+    public void setOpacity(float opacity) {
+        if(isInitialized()) {
+            mOpacityParameter.setValue(opacity);
+        } else {
+            mOpacity = opacity;
+        }
+    }
+
+    public void setMargin(float x, float y) {
+        if(isInitialized()) {
+            mMarginXParameter.setValue(x);
+            mMarginYParameter.setValue(y);
+        } else {
+            mMarginX = x;
+            mMarginY = y;
+        }
+    }
+
+    public void setAlignment(Alignment alignment) {
+        if(isInitialized()) {
+            mAlignmentParameter.setValue(alignment);
+        } else {
+            mAlignment = alignment;
+        }
+    }
+}
+Spectaculum-Core/src/main/java/net/protyposis/android/spectaculum/SpectaculumView.java
+public class SpectaculumView extends GLSurfaceView implements
+        SurfaceTexture.OnFrameAvailableListener,
+        Effect.Listener, GLRenderer.EffectEventListener,
+        GLRenderer.OnFrameCapturedCallback {
+
+    private static final String TAG = SpectaculumView.class.getSimpleName();
+
+    public interface EffectEventListener extends GLRenderer.EffectEventListener {}
+    public interface OnFrameCapturedCallback extends GLRenderer.OnFrameCapturedCallback {}
+
+    private GLRenderer mRenderer;
+    private InputSurfaceHolder mInputSurfaceHolder;
+    private Handler mRunOnUiThreadHandler = new Handler();
+    private ScaleGestureDetector mScaleGestureDetector;
+    private GestureDetector mGestureDetector;
+
+    private EffectEventListener mEffectEventListener;
+    private OnFrameCapturedCallback mOnFrameCapturedCallback;
+
+    private PipelineResolution mPipelineResolution = PipelineResolution.SOURCE;
+
+    private float mZoomLevel = 1.0f;
+    private float mZoomSnappingRange = 0.02f;
+    private float mPanX;
+    private float mPanY;
+    private float mPanSnappingRange = 0.02f;
+    private boolean mTouchEnabled = false;
+
+    protected int mImageWidth;
+    protected int mImageHeight;
+
+    public SpectaculumView(Context context) {
+        super(context);
+        init(context);
+    }
+
+    public SpectaculumView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        init(context);
+    }
+
+    private void init(Context context) {
+        if(isInEditMode()) {
+            // do not start renderer in layout editor
+            return;
+        }
+        if(!net.protyposis.android.spectaculum.gles.GLUtils.isGlEs2Supported(context)) {
+            Log.e(TAG, "GLES 2.0 is not supported");
+            return;
+        }
+
+        LibraryHelper.setContext(context);
+
+        mRenderer = new GLRenderer();
+        mRenderer.setOnExternalSurfaceTextureCreatedListener(mExternalSurfaceTextureCreatedListener);
+        mRenderer.setEffectEventListener(mRendererEffectEventListener);
+
+        mInputSurfaceHolder = new InputSurfaceHolder();
+
+        setEGLContextClientVersion(2);
+        setRenderer(mRenderer);
+        setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+        // TODO setPreserveEGLContextOnPause(true);
+
+        mScaleGestureDetector = new ScaleGestureDetector(context,
+                new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                    @Override
+                    public boolean onScale(ScaleGestureDetector detector) {
+                        mZoomLevel *= detector.getScaleFactor();
+
+                        if(LibraryHelper.isBetween(mZoomLevel, 1-mZoomSnappingRange, 1+mZoomSnappingRange)) {
+                            mZoomLevel = 1.0f;
+                        }
+
+                        // limit zooming to magnification zooms (zoom-ins)
+                        if(mZoomLevel < 1.0f) {
+                            mZoomLevel = 1.0f;
+                        }
+
+                        setZoom(mZoomLevel);
+                        return true;
+                    }
+                });
+
+        mGestureDetector = new GestureDetector(context,
+                new GestureDetector.SimpleOnGestureListener() {
+                    @Override
+                    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                        // divide by zoom level to adjust panning speed to zoomed picture size
+                        // multiply by fixed scaling factor to compensate for panning lag
+                        mPanX += distanceX / getWidth() / mZoomLevel * 1.2f;
+                        mPanY += distanceY / getHeight() / mZoomLevel * 1.2f;
+
+                        float panSnappingRange = mPanSnappingRange / mZoomLevel;
+                        if(LibraryHelper.isBetween(mPanX, -panSnappingRange, +panSnappingRange)) {
+                            mPanX = 0;
+                        }
+                        if(LibraryHelper.isBetween(mPanY, -panSnappingRange, +panSnappingRange)) {
+                            mPanY = 0;
+                        }
+
+                        // limit panning to the texture bounds so it always covers the complete view
+                        float maxPanX = Math.abs((1.0f / mZoomLevel) - 1.0f);
+                        float maxPanY = Math.abs((1.0f / mZoomLevel) - 1.0f);
+                        mPanX = LibraryHelper.clamp(mPanX, -maxPanX, maxPanX);
+                        mPanY = LibraryHelper.clamp(mPanY, -maxPanY, maxPanY);
+
+                        setPan(mPanX, mPanY);
+                        return true;
+                    }
+
+                    @Override
+                    public boolean onDoubleTap(MotionEvent e) {
+                        mZoomLevel = 1;
+                        mPanX = 0;
+                        mPanY = 0;
+
+                        setZoom(mZoomLevel);
+                        setPan(mPanX, mPanY);
+
+                        return true;
+                    }
+                });
+    }
+
+    /**
+     * Sets the zoom factor of the texture in the view. 1.0 means no zoom, 2.0 2x zoom, etc.
+     */
+    public void setZoom(float zoomFactor) {
+        mZoomLevel = zoomFactor;
+        mRenderer.setZoomLevel(mZoomLevel);
+        requestRender(GLRenderer.RenderRequest.GEOMETRY);
+    }
+
+    /**
+     * Gets the zoom level.
+     * @see #setZ(float) for an explanation if the value
+     * @return
+     */
+    public float getZoomLevel() {
+        return mZoomLevel;
+    }
+
+    /**
+     * Sets the panning of the texture in the view. (0.0, 0.0) centers the texture and means no
+     * panning, (-1.0, -1.0) moves the texture to the lower right quarter.
+     */
+    public void setPan(float x, float y) {
+        mPanX = x;
+        mPanY = y;
+        mRenderer.setPan(-mPanX, mPanY);
+        requestRender(GLRenderer.RenderRequest.GEOMETRY);
+    }
+
+    /**
+     * Gets the horizontal panning. Zero means centered, positive is to the left.
+     */
+    public float getPanX() {
+        return mPanX;
+    }
+
+    /**
+     * Gets the vertical panning. Zero means centered, positive is to the bottom.
+     */
+    public float getPanY() {
+        return mPanY;
+    }
+
+    /**
+     * Enables or disables touch zoom/pan gestures. When disabled, a parent container (e.g. an activity)
+     * can still pass touch events to this view's {@link #onTouchEvent(MotionEvent)} to process
+     * zoom/pan gestures.
+     * @see #isTouchEnabled()
+     */
+    public void setTouchEnabled(boolean enabled) {
+        mTouchEnabled = enabled;
+    }
+
+    /**
+     * Checks if touch gestures are enabled. Touch gestures are disabled by default.
+     * @see #setTouchEnabled(boolean)
+     */
+    public boolean isTouchEnabled() {
+        return mTouchEnabled;
+    }
+
+    /**
+     * Resizes the video view according to the video size to keep aspect ratio.
+     * Code copied from {@link android.widget.VideoView#onMeasure(int, int)}.
+     */
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        Log.i("@@@@", "onMeasure(" + MeasureSpec.toString(widthMeasureSpec) + ", "
+                + MeasureSpec.toString(heightMeasureSpec) + ")");
+
+        int width = getDefaultSize(mImageWidth, widthMeasureSpec);
+        int height = getDefaultSize(mImageHeight, heightMeasureSpec);
+        if (mImageWidth > 0 && mImageHeight > 0) {
+
+            int widthSpecMode = MeasureSpec.getMode(widthMeasureSpec);
+            int widthSpecSize = MeasureSpec.getSize(widthMeasureSpec);
+            int heightSpecMode = MeasureSpec.getMode(heightMeasureSpec);
+            int heightSpecSize = MeasureSpec.getSize(heightMeasureSpec);
+
+            if (widthSpecMode == MeasureSpec.EXACTLY && heightSpecMode == MeasureSpec.EXACTLY) {
+                // the size is fixed
+                width = widthSpecSize;
+                height = heightSpecSize;
+
+                // for compatibility, we adjust size based on aspect ratio
+                if ( mImageWidth * height  < width * mImageHeight) {
+                    //Log.i("@@@", "image too wide, correcting");
+                    width = height * mImageWidth / mImageHeight;
+                } else if ( mImageWidth * height  > width * mImageHeight) {
+                    //Log.i("@@@", "image too tall, correcting");
+                    height = width * mImageHeight / mImageWidth;
+                }
+            } else if (widthSpecMode == MeasureSpec.EXACTLY) {
+                // only the width is fixed, adjust the height to match aspect ratio if possible
+                width = widthSpecSize;
+                height = width * mImageHeight / mImageWidth;
+                if (heightSpecMode == MeasureSpec.AT_MOST && height > heightSpecSize) {
+                    // couldn't match aspect ratio within the constraints
+                    height = heightSpecSize;
+                }
+            } else if (heightSpecMode == MeasureSpec.EXACTLY) {
+                // only the height is fixed, adjust the width to match aspect ratio if possible
+                height = heightSpecSize;
+                width = height * mImageWidth / mImageHeight;
+                if (widthSpecMode == MeasureSpec.AT_MOST && width > widthSpecSize) {
+                    // couldn't match aspect ratio within the constraints
+                    width = widthSpecSize;
+                }
+            } else {
+                // neither the width nor the height are fixed, try to use actual video size
+                width = mImageWidth;
+                height = mImageHeight;
+                if (heightSpecMode == MeasureSpec.AT_MOST && height > heightSpecSize) {
+                    // too tall, decrease both width and height
+                    height = heightSpecSize;
+                    width = height * mImageWidth / mImageHeight;
+                }
+                if (widthSpecMode == MeasureSpec.AT_MOST && width > widthSpecSize) {
+                    // too wide, decrease both width and height
+                    width = widthSpecSize;
+                    height = width * mImageHeight / mImageWidth;
+                }
+            }
+        } else {
+            // no size yet, just adopt the given spec sizes
+        }
+        setMeasuredDimension(width, height);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        /*
+         * NOTE: These calls should not be simplified to a logical chain, because the evaluation
+         * would stop at the first true value and not execute the following functions.
+         */
+        boolean event1 = mScaleGestureDetector.onTouchEvent(event);
+        boolean event2 = mGestureDetector.onTouchEvent(event);
+        return event1 || event2;
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+        if(!mTouchEnabled) {
+            // Touch events are disabled and we return false to route all events to the parent
+            return false;
+        }
+        return super.dispatchTouchEvent(event);
+    }
+
+    /**
+     * Implement this method to receive the input surface holder when it is ready to be used.
+     * The input surface holder holds the surface and surface texture to which input data, i.e. image
+     * data from some source that should be processed and displayed, should be written to display
+     * it in the view.
+     *
+     * External callers should add a callback to the holder through {@link InputSurfaceHolder#addCallback(InputSurfaceHolder.Callback)}
+     * to be notified about this event in {@link InputSurfaceHolder.Callback#surfaceCreated(InputSurfaceHolder)}.
+     *
+     * @param inputSurfaceHolder the input surface holder which holds the surface where image data should be written to
+     */
+    public void onInputSurfaceCreated(InputSurfaceHolder inputSurfaceHolder) {
+        // nothing to do here
+    }
+
+    /**
+     * Gets the input surface holder that holds the surface where image data should be written to
+     * for processing and display. The holder is always available but only holds an actual surface
+     * after {@link #onInputSurfaceCreated(InputSurfaceHolder)} respectively
+     * {@link InputSurfaceHolder.Callback#surfaceCreated(InputSurfaceHolder)} have been called.
+     *
+     * The input surface holder holds the input surface (texture) that is used to write image data
+     * into the processing pipeline, opposed to the surface holder from {@link #getHolder()} that holds
+     * the surface to which the final result of the processing pipeline will be written to for display.
+     *
+     * @return the input surface holder or null if it is not available yet
+     */
+    public InputSurfaceHolder getInputHolder() {
+        return mInputSurfaceHolder;
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+        // Delete the external texture, else it stays in RAM
+        if(getInputHolder().getExternalSurfaceTexture() != null) {
+            getInputHolder().getExternalSurfaceTexture().delete();
+            getInputHolder().update(null);
+        }
+        super.surfaceDestroyed(holder);
+    }
+
+    /**
+     * Adds one or more effects to the view. Added effects can then be activated/selected by calling
+     * {@link #selectEffect(int)}. The effect indices start at zero and are in the order that they
+     * are added to the view.
+     * @param effects effects to add
+     */
+    public void addEffect(final Effect... effects) {
+        for(Effect effect : effects) {
+            effect.addListener(this);
+            effect.setParameterHandler(new ParameterHandler(this));
+        }
+        queueEvent(new Runnable() {
+            @Override
+            public void run() {
+                mRenderer.addEffect(effects);
+            }
+        });
+    }
+
+    /**
+     * Selects/activates the effect with the given index as it has been added through {@link #addEffect(Effect...)}.
+     * @param index the index of the effect to activate
+     */
+    public void selectEffect(final int index) {
+        queueEvent(new Runnable() {
+            @Override
+            public void run() {
+                mRenderer.selectEffect(index);
+                requestRender(GLRenderer.RenderRequest.EFFECT);
+            }
+        });
+    }
+
+    /**
+     * Gets called when an effect has been initialized after being selected for the first time
+     * with {@link #selectEffect(int)}. Effect initialization happens asynchronously and can take
+     * some time when a lot of data (framebuffers, textures, ...) is loaded.
+     * Can be overwritten in subclasses but must be called through. External callers should use
+     * {@link #setEffectEventListener(EffectEventListener)}.
+     * @param index the index of the initialized effect
+     * @param effect the initialized effect
+     */
+    @Override
+    public void onEffectInitialized(int index, Effect effect) {
+        if(mEffectEventListener != null) {
+            mEffectEventListener.onEffectInitialized(index, effect);
+        }
+        requestRender(GLRenderer.RenderRequest.EFFECT);
+    }
+
+    /**
+     * Gets called when an effect has been successfully selected with {@link #selectEffect(int)}.
+     * Can be overwritten in subclasses but must be called through. External callers should use
+     * {@link #setEffectEventListener(EffectEventListener)}.
+     * @param index the index of the selected effect
+     * @param effect the selected effect
+     */
+    @Override
+    public void onEffectSelected(int index, Effect effect) {
+        if(mEffectEventListener != null) {
+            mEffectEventListener.onEffectSelected(index, effect);
+        }
+    }
+
+    /**
+     * Gets called when an effect selection with {@link #selectEffect(int)} fails.
+     * Can be overwritten in subclasses but must be called through. External callers should use
+     * {@link #setEffectEventListener(EffectEventListener)}.
+     * @param index the index of the failed effect
+     * @param effect the failed effect
+     */
+    @Override
+    public void onEffectError(int index, Effect effect, EffectException e) {
+        Log.e(TAG, "effect error", e);
+        if(mEffectEventListener != null) {
+            mEffectEventListener.onEffectError(index, effect, e);
+        }
+    }
+
+    /**
+     * Sets an event listener that gets called when effect-related event happens.
+     * @param listener the event listener to be called on an event
+     */
+    public void setEffectEventListener(EffectEventListener listener) {
+        mEffectEventListener = listener;
+    }
+
+    /**
+     * Gets called when a parameter of an effect has changed. This method then triggers a fresh
+     * rendering of the effect. Can be overridden in subclasses but must be called through.
+     * @param effect the effect of which a parameter value has changed
+     * @see net.protyposis.android.spectaculum.effects.Effect.Listener
+     */
+    @Override
+    public void onEffectChanged(Effect effect) {
+        requestRender(GLRenderer.RenderRequest.EFFECT);
+    }
+
+    /**
+     * Gets called when a parameter is added to an effect.
+     * Can be overridden in subclasses but must be called through.
+     * @param effect the effect to which a parameter was added
+     * @param parameter the added parameter
+     * @see net.protyposis.android.spectaculum.effects.Effect.Listener
+     */
+    @Override
+    public void onParameterAdded(Effect effect, Parameter parameter) {
+        // nothing to do here
+    }
+
+    /**
+     * Gets called when a parameter is removed from an effect.
+     * Can be overridden in subclasses but must be called through.
+     * @param effect the effect from which a parameter was removed
+     * @param parameter the removed parameter
+     * @see net.protyposis.android.spectaculum.effects.Effect.Listener
+     */
+    @Override
+    public void onParameterRemoved(Effect effect, Parameter parameter) {
+        // nothing to do here
+    }
+
+    /**
+     * Gets called when a new image frame has been written to the surface texture and requests a
+     * fresh rendering of the view. The texture can be obtained through {@link #onInputSurfaceCreated(InputSurfaceHolder)}
+     * or {@link #getInputHolder()}.
+     * Can be overridden in subclasses but must be called through.
+     * @param surfaceTexture the updated surface texture
+     */
+    @Override
+    public void onFrameAvailable(SurfaceTexture surfaceTexture) {
+        requestRender(GLRenderer.RenderRequest.ALL);
+    }
+
+    /**
+     * Requests a render pass of the specified render pipeline section.
+     * @param renderRequest specifies the pipeline section to be rendered
+     */
+    protected void requestRender(final GLRenderer.RenderRequest renderRequest) {
+        queueEvent(new Runnable() {
+            @Override
+            public void run() {
+                mRenderer.setRenderRequest(renderRequest);
+                requestRender();
+            }
+        });
+    }
+
+    /**
+     * Requests a capture of the current frame on the view. The frame is asynchronously requested
+     * from the renderer and will be passed back on the UI thread to {@link #onFrameCaptured(Bitmap)}
+     * and the event listener that can be set with {@link #setOnFrameCapturedCallback(OnFrameCapturedCallback)}.
+     */
+    public void captureFrame() {
+        queueEvent(new Runnable() {
+            @Override
+            public void run() {
+                mRenderer.saveCurrentFrame(new GLRenderer.OnFrameCapturedCallback() {
+                    @Override
+                    public void onFrameCaptured(final Bitmap bitmap) {
+                        mRunOnUiThreadHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                SpectaculumView.this.onFrameCaptured(bitmap);
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Receives a captured frame from the renderer. Can be overwritten in subclasses but must be
+     * called through. External callers should use {@link #setOnFrameCapturedCallback(OnFrameCapturedCallback)}.
+     */
+    @Override
+    public void onFrameCaptured(Bitmap bitmap) {
+        if(mOnFrameCapturedCallback != null) {
+            mOnFrameCapturedCallback.onFrameCaptured(bitmap);
+        }
+    }
+
+    /**
+     * Sets a callback event handler that receives a bitmap of the captured frame.
+     */
+    public void setOnFrameCapturedCallback(OnFrameCapturedCallback callback) {
+        mOnFrameCapturedCallback = callback;
+    }
+
+    /**
+     * Sets the resolution mode of the processing pipeline.
+     * @see PipelineResolution
+     */
+    public void setPipelineResolution(PipelineResolution resolution) {
+        mPipelineResolution = resolution;
+    }
+
+    /**
+     * Gets the configured resolution mode of the processing pipeline.
+     */
+    public PipelineResolution getPipelineResolution() {
+        return mPipelineResolution;
+    }
+
+    /**
+     * Sets the resolution of the source data and recomputes the layout. This implicitly also sets
+     * the resolution of the view output surface if pipeline resolution mode {@link PipelineResolution#SOURCE}
+     * is set. In SOURCE mode, output will therefore be computed in the input resolution and then
+     * at the very end scaled (most often downscaled) to fit the view in the layout.
+     *
+     * TODO decouple input, processing and output resolution
+     *
+     * @param width the width of the input image data
+     * @param height the height of the input image data
+     */
+    public void updateResolution(int width, int height) {
+        if(width == mImageWidth && height == mImageHeight) {
+            // Don't do anything if resolution has stayed the same
+            return;
+        }
+
+        mImageWidth = width;
+        mImageHeight = height;
+
+        // If desired, set output resolution to source resolution
+        if (width != 0 && height != 0 && mPipelineResolution == PipelineResolution.SOURCE) {
+            getHolder().setFixedSize(width, height);
+        }
+
+        // Resize view according to the new size to fit the layout
+        requestLayout();
+    }
+
+    private GLRenderer.OnExternalSurfaceTextureCreatedListener mExternalSurfaceTextureCreatedListener =
+            new GLRenderer.OnExternalSurfaceTextureCreatedListener() {
+        @Override
+        public void onExternalSurfaceTextureCreated(final ExternalSurfaceTexture surfaceTexture) {
+            // dispatch event to UI thread
+            mRunOnUiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    // Create an input surface holder and call the event handler
+                    mInputSurfaceHolder.update(surfaceTexture);
+                    onInputSurfaceCreated(mInputSurfaceHolder);
+                }
+            });
+
+            surfaceTexture.setOnFrameAvailableListener(SpectaculumView.this);
+        }
+    };
+
+    /**
+     * Effect event listener that transfers the events to the UI thread.
+     */
+    private EffectEventListener mRendererEffectEventListener = new EffectEventListener() {
+        @Override
+        public void onEffectInitialized(final int index, final Effect effect) {
+            mRunOnUiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    SpectaculumView.this.onEffectInitialized(index, effect);
+                }
+            });
+        }
+
+        @Override
+        public void onEffectSelected(final int index, final Effect effect) {
+            mRunOnUiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    SpectaculumView.this.onEffectSelected(index, effect);
+                }
+            });
+        }
+
+        @Override
+        public void onEffectError(final int index, final Effect effect, final EffectException e) {
+            mRunOnUiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    SpectaculumView.this.onEffectError(index, effect, e);
+                }
+            });
+        }
+    };
+}
+Spectaculum-Core/src/main/java/net/protyposis/android/spectaculum/effects/KernelGaussBlurEffect.java
+public class KernelGaussBlurEffect extends ShaderEffect {
+    @Override
+    protected TextureShaderProgram initShaderProgram() {
+        return new TextureKernelShaderProgram(TextureKernelShaderProgram.Kernel.BLUR_GAUSS);
+    }
+}
+Spectaculum-Effect-FlowAbs/src/main/java/net/protyposis/android/spectaculum/effects/FlowAbsEffect.java
+public class FlowAbsEffect extends BaseEffect {
+
+    protected FlowAbs mFlowAbs;
+
+    private float mSstSigma;
+
+    private int mBfNE;
+    private int mBfNA;
+    private float mBfSigmaD;
+    private float mBfSigmaR;
+
+    private int mFDogType;
+    private int mFDogN;
+    private float mFDogSigmaE;
+    private float mFDogSigmaR;
+    private float mFDogSigmaM;
+    private float mFDogTau;
+    private float mFDogPhi;
+
+    private int mCqFilter;
+    private int mCqNumBins;
+    private float mCqPhiQ;
+
+    private float[] mEdgeColor;
+
+    private int mFsType;
+    private float mFsSigma;
+
+    public FlowAbsEffect() {
+        super();
+
+        mSstSigma = 2.0f;
+
+        mBfNE = 0; // TODO default to 1 once the bilateral filter is working correctly
+        mBfNA = 0; // TODO default to 4 once the bilateral filter is working correctly
+        mBfSigmaD = 3.0f;
+        mBfSigmaR = 4.25f;
+
+        mFDogType = 0;
+        mFDogN = 1;
+        mFDogSigmaE = 1.0f;
+        mFDogSigmaR = 1.6f;
+        mFDogSigmaM = 3.0f;
+        mFDogTau = 0.99f;
+        mFDogPhi = 2.0f;
+
+        mCqFilter = 1;
+        mCqNumBins = 8;
+        mCqPhiQ = 3.4f;
+
+        mEdgeColor = new float[] { 0.0f, 0.0f, 0.0f };
+
+        mFsType = 1;
+        mFsSigma = 1.0f;
+
+        addParameter(new FloatParameter("SST Sigma", 0f, 10f, mSstSigma, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mSstSigma = value;
+            }
+        }));
+
+        addParameter(new IntegerParameter("BF N E", 0, 10, mBfNE, new IntegerParameter.Delegate() {
+            @Override
+            public void setValue(Integer value) {
+                mBfNE = value;
+            }
+        }));
+        addParameter(new IntegerParameter("BF N A", 0, 10, mBfNA, new IntegerParameter.Delegate() {
+            @Override
+            public void setValue(Integer value) {
+                mBfNA = value;
+            }
+        }));
+        addParameter(new FloatParameter("BF sigmaD", 0f, 10f, mBfSigmaD, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mBfSigmaD = value;
+            }
+        }));
+        addParameter(new FloatParameter("BF sigmaR", 0f, 10f, mBfSigmaR, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mBfSigmaR = value;
+            }
+        }));
+
+        addParameter(new IntegerParameter("(F)DOG Type", 0, 1, mFDogType, new IntegerParameter.Delegate() {
+            @Override
+            public void setValue(Integer value) {
+                mFDogType = value;
+            }
+        }));
+        addParameter(new IntegerParameter("(F)DOG N", 0, 10, mFDogN, new IntegerParameter.Delegate() {
+            @Override
+            public void setValue(Integer value) {
+                mFDogN = value;
+            }
+        }));
+        addParameter(new FloatParameter("(F)DOG sigmaE", 0f, 10f, mFDogSigmaE, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mFDogSigmaE = value;
+            }
+        }));
+        addParameter(new FloatParameter("(F)DOG sigmaR", 0f, 10f, mFDogSigmaR, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mFDogSigmaR = value;
+            }
+        }));
+        addParameter(new FloatParameter("FDOG sigmaM", 0f, 10f, mFDogSigmaM, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mFDogSigmaM = value;
+            }
+        }));
+        addParameter(new FloatParameter("(F)DOG tau", 0f, 10f, mFDogTau, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mFDogTau = value;
+            }
+        }));
+        addParameter(new FloatParameter("(F)DOG phi", 0f, 10f, mFDogPhi, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mFDogPhi = value;
+            }
+        }));
+
+        addParameter(new IntegerParameter("CQ Filter", 0, 2, mCqFilter, new IntegerParameter.Delegate() {
+            @Override
+            public void setValue(Integer value) {
+                mCqFilter = value;
+            }
+        }));
+        addParameter(new IntegerParameter("CQ Bins", 0, 20, mCqNumBins, new IntegerParameter.Delegate() {
+            @Override
+            public void setValue(Integer value) {
+                mCqNumBins = value;
+            }
+        }));
+        addParameter(new FloatParameter("CQ phiQ", 0f, 10f, mCqPhiQ, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mCqPhiQ = value;
+            }
+        }));
+
+        addParameter(new FloatParameter("Edge R", 0f, 1f, mEdgeColor[0], new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mEdgeColor[0] = value;
+            }
+        }));
+        addParameter(new FloatParameter("Edge G", 0f, 1f, mEdgeColor[1], new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mEdgeColor[1] = value;
+            }
+        }));
+        addParameter(new FloatParameter("Edge B", 0f, 1f, mEdgeColor[2], new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mEdgeColor[2] = value;
+            }
+        }));
+
+        addParameter(new IntegerParameter("FS Type", 0, 3, mFsType, new IntegerParameter.Delegate() {
+            @Override
+            public void setValue(Integer value) {
+                mFsType = value;
+            }
+        }));
+        addParameter(new FloatParameter("FS Sigma", 0f, 10f, mFsSigma, new FloatParameter.Delegate() {
+            @Override
+            public void setValue(Float value) {
+                mFsSigma = value;
+            }
+        }));
+    }
+
+    @Override
+    public void init(int width, int height) {
+        mFlowAbs = new FlowAbs(width, height);
+        setInitialized();
+    }
+
+    @Override
+    public void apply(Texture2D source, Framebuffer target) {
+        mFlowAbs.flowAbs(source, target,
+                mSstSigma,
+                mBfNE, mBfNA, mBfSigmaD, mBfSigmaR,
+                mFDogType, mFDogN, mFDogSigmaE, mFDogSigmaR, mFDogSigmaM, mFDogTau, mFDogPhi,
+                mCqFilter, mCqNumBins, mCqPhiQ,
+                mEdgeColor,
+                mFsType, mFsSigma);
+    }
+
+    public FlowAbsGaussEffect getGaussEffect() {
+        return (FlowAbsGaussEffect) new FlowAbsGaussEffect().init(this);
+    }
+
+    public FlowAbsSmoothEffect getSmoothEffect() {
+        return (FlowAbsSmoothEffect) new FlowAbsSmoothEffect().init(this);
+    }
+
+    public FlowAbsBilateralFilterEffect getBilateralFilterEffect() {
+        return (FlowAbsBilateralFilterEffect) new FlowAbsBilateralFilterEffect().init(this);
+    }
+
+    public FlowAbsColorQuantizationEffect getColorQuantizationEffect() {
+        return (FlowAbsColorQuantizationEffect) new FlowAbsColorQuantizationEffect().init(this);
+    }
+
+    public FlowAbsDOGEffect getDOGEffect() {
+        return (FlowAbsDOGEffect) new FlowAbsDOGEffect().init(this);
+    }
+
+    public FlowAbsFDOGEffect getFDOGEffect() {
+        return (FlowAbsFDOGEffect) new FlowAbsFDOGEffect().init(this);
+    }
+
+    public FlowAbsTangentFlowMapEffect getTangentFlowMapEffect() {
+        return (FlowAbsTangentFlowMapEffect) new FlowAbsTangentFlowMapEffect().init(this);
+    }
+
+    public FlowAbsNoiseTextureEffect getNoiseTextureEffect() {
+        return (FlowAbsNoiseTextureEffect) new FlowAbsNoiseTextureEffect().init(this);
+    }
+}

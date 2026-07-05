@@ -1,0 +1,10 @@
+[
+  {
+    "id": "repobench-p-0002-answer",
+    "score": "exact",
+    "question": "This is a LongBench code completion task.\nThe archive context is the code prefix/context. Predict only the next missing answer span from that context.\nOutput the shortest completion span only. No surrounding code. No markdown fences. No explanation.\nTask input:\nimport doctest\nimport unittest\nfrom hypothesis import given\nfrom hypothesis.strategies import integers\nfrom arxpy.bitvector.core import Variable, Constant\nfrom arxpy.bitvector.operation import RotateLeft, RotateRight\nfrom arxpy.primitives.primitives import BvFunction, KeySchedule, Encryption, Cipher\nfrom arxpy.differential.difference import XorDiff, RXDiff\nfrom arxpy.differential import characteristic\nfrom arxpy.differential.characteristic import BvCharacteristic, SingleKeyCh, RelatedKeyCh\n\"\"\"Tests for the Characteristic module.\"\"\"\n\n\n\n\n\n\nVERBOSE = False\n\n\n# 1st cipher: linear key schedule and encryption with modular addition (no ctes)\n\nclass MyFunction(BvFunction):  # noqa: D101\n    input_widths = [8, 8]\n    output_widths = [8]\n    rounds = 1\n\n    @classmethod\n    def eval(cls, x, y):\n        x = RotateLeft(x ^ Constant(1, 8), 1)\n        y = ~y\n        return tuple([x + y])\n\n\nclass KeySchedule1(KeySchedule):  # noqa: D101\n    input_widths = [8]\n    output_widths = [8, 8]\n\n    @classmethod\n    def eval(cls, mk):\n        return tuple([mk, mk ^ Constant(1, 8)])\n\n\n",
+    "golds": [
+      "class Encryption1(Encryption):  # noqa: D101"
+    ]
+  }
+]

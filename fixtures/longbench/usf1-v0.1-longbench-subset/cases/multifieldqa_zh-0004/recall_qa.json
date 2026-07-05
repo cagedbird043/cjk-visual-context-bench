@@ -1,0 +1,10 @@
+[
+  {
+    "id": "multifieldqa_zh-0004-answer",
+    "score": "semantic",
+    "question": "请只根据 archive context 回答下面的 LongBench 问题。\n只输出最短答案片段，不要解释。\n问题：\n奇力锅炉公司支付了多少预付款？",
+    "golds": [
+      "10万元。"
+    ]
+  }
+]

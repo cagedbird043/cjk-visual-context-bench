@@ -1,0 +1,10 @@
+[
+  {
+    "id": "multifieldqa_zh-0001-answer",
+    "score": "semantic",
+    "question": "请只根据 archive context 回答下面的 LongBench 问题。\n只输出最短答案片段，不要解释。\n问题：\n过去五年地方财政用于社会保障支出的金额是多少？",
+    "golds": [
+      "6.5亿元。"
+    ]
+  }
+]

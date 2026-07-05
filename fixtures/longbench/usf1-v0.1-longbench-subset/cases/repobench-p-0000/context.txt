@@ -1,0 +1,2112 @@
+Source: LongBench
+Dataset: repobench-p
+Language: java
+Source id: 03b9c503110e4dc8f2d7690f56be9e9b2733744da1a855ff
+
+Input:
+package kademlia;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.NoSuchElementException;
+import java.util.Timer;
+import java.util.TimerTask;
+import kademlia.dht.GetParameter;
+import kademlia.dht.DHT;
+import kademlia.dht.KadContent;
+import kademlia.dht.KademliaDHT;
+import kademlia.dht.KademliaStorageEntry;
+import kademlia.dht.JKademliaStorageEntry;
+import kademlia.exceptions.ContentNotFoundException;
+import kademlia.exceptions.RoutingException;
+import kademlia.message.MessageFactory;
+import kademlia.node.Node;
+import kademlia.node.KademliaId;
+import kademlia.operation.ConnectOperation;
+import kademlia.operation.ContentLookupOperation;
+import kademlia.operation.Operation;
+import kademlia.operation.KadRefreshOperation;
+import kademlia.operation.StoreOperation;
+import kademlia.routing.JKademliaRoutingTable;
+import kademlia.routing.KademliaRoutingTable;
+import kademlia.util.serializer.JsonDHTSerializer;
+import kademlia.util.serializer.JsonRoutingTableSerializer;
+import kademlia.util.serializer.JsonSerializer;
+
+
+/**
+ * The main Kademlia Node on the network, this node manages everything for this local system.
+ *
+ * @author Joshua Kissoon
+ * @since 20140215
+ *
+ * @todo When we receive a store message - if we have a newer version of the content, re-send this newer version to that node so as to update their version
+ * @todo Handle IPv6 Addresses
+ *
+ */
+public class JKademliaNode implements KademliaNode
+{
+
+    /* Kademlia Attributes */
+    private final String ownerId;
+
+    /* Objects to be used */
+    private final transient Node localNode;
+    private final transient KadServer server;
+    private final transient KademliaDHT dht;
+
+Context:
+src/kademlia/operation/KadRefreshOperation.java
+public class KadRefreshOperation implements Operation
+{
+
+    private final KadServer server;
+    private final KademliaNode localNode;
+    private final KademliaDHT dht;
+    private final KadConfiguration config;
+
+    public KadRefreshOperation(KadServer server, KademliaNode localNode, KademliaDHT dht, KadConfiguration config)
+    {
+        this.server = server;
+        this.localNode = localNode;
+        this.dht = dht;
+        this.config = config;
+    }
+
+    @Override
+    public void execute() throws IOException
+    {
+        /* Run our BucketRefreshOperation to refresh buckets */
+        new BucketRefreshOperation(this.server, this.localNode, this.config).execute();
+
+        /* After buckets have been refreshed, we refresh content */
+        new ContentRefreshOperation(this.server, this.localNode, this.dht, this.config).execute();
+    }
+}
+src/kademlia/operation/StoreOperation.java
+public class StoreOperation implements Operation
+{
+
+    private final KadServer server;
+    private final KademliaNode localNode;
+    private final JKademliaStorageEntry storageEntry;
+    private final KademliaDHT localDht;
+    private final KadConfiguration config;
+
+    /**
+     * @param server
+     * @param localNode
+     * @param storageEntry The content to be stored on the DHT
+     * @param localDht     The local DHT
+     * @param config
+     */
+    public StoreOperation(KadServer server, KademliaNode localNode, JKademliaStorageEntry storageEntry, KademliaDHT localDht, KadConfiguration config)
+    {
+        this.server = server;
+        this.localNode = localNode;
+        this.storageEntry = storageEntry;
+        this.localDht = localDht;
+        this.config = config;
+    }
+
+    @Override
+    public synchronized void execute() throws IOException
+    {
+        /* Get the nodes on which we need to store the content */
+        NodeLookupOperation ndlo = new NodeLookupOperation(this.server, this.localNode, this.storageEntry.getContentMetadata().getKey(), this.config);
+        ndlo.execute();
+        List<Node> nodes = ndlo.getClosestNodes();
+
+        /* Create the message */
+        Message msg = new StoreContentMessage(this.localNode.getNode(), this.storageEntry);
+
+        /*Store the message on all of the K-Nodes*/
+        for (Node n : nodes)
+        {
+            if (n.equals(this.localNode.getNode()))
+            {
+                /* Store the content locally */
+                this.localDht.store(this.storageEntry);
+            }
+            else
+            {
+                /**
+                 * @todo Create a receiver that receives a store acknowledgement message to count how many nodes a content have been stored at
+                 */
+                this.server.sendMessage(n, msg, null);
+            }
+        }
+    }
+
+    /**
+     * @return The number of nodes that have stored this content
+     *
+     * @todo Implement this method
+     */
+    public int numNodesStoredAt()
+    {
+        return 1;
+    }
+}
+src/kademlia/dht/JKademliaStorageEntry.java
+public class JKademliaStorageEntry implements KademliaStorageEntry
+{
+
+    private String content;
+    private final StorageEntryMetadata metadata;
+
+    public JKademliaStorageEntry(final KadContent content)
+    {
+        this(content, new StorageEntryMetadata(content));
+    }
+
+    public JKademliaStorageEntry(final KadContent content, final StorageEntryMetadata metadata)
+    {
+        this.setContent(content.toSerializedForm());
+        this.metadata = metadata;
+    }
+
+    @Override
+    public final void setContent(final byte[] data)
+    {
+        this.content = new String(data);
+    }
+
+    @Override
+    public final byte[] getContent()
+    {
+        return this.content.getBytes();
+    }
+
+    @Override
+    public final KademliaStorageEntryMetadata getContentMetadata()
+    {
+        return this.metadata;
+    }
+
+    @Override
+    public String toString()
+    {
+        StringBuilder sb = new StringBuilder("[StorageEntry: ");
+
+        sb.append("[Content: ");
+        sb.append(this.getContent());
+        sb.append("]");
+
+        sb.append(this.getContentMetadata());
+
+        sb.append("]");
+
+        return sb.toString();
+    }
+}
+src/kademlia/dht/DHT.java
+public class DHT implements KademliaDHT
+{
+
+    private transient StoredContentManager contentManager;
+    private transient KadSerializer<JKademliaStorageEntry> serializer = null;
+    private transient KadConfiguration config;
+
+    private final String ownerId;
+
+    public DHT(String ownerId, KadConfiguration config)
+    {
+        this.ownerId = ownerId;
+        this.config = config;
+        this.initialize();
+    }
+
+    @Override
+    public final void initialize()
+    {
+        contentManager = new StoredContentManager();
+    }
+
+    @Override
+    public void setConfiguration(KadConfiguration con)
+    {
+        this.config = con;
+    }
+
+    @Override
+    public KadSerializer<JKademliaStorageEntry> getSerializer()
+    {
+        if (null == serializer)
+        {
+            serializer = new JsonSerializer<>();
+        }
+
+        return serializer;
+    }
+
+    @Override
+    public boolean store(JKademliaStorageEntry content) throws IOException
+    {
+        /* Lets check if we have this content and it's the updated version */
+        if (this.contentManager.contains(content.getContentMetadata()))
+        {
+            KademliaStorageEntryMetadata current = this.contentManager.get(content.getContentMetadata());
+
+            /* update the last republished time */
+            current.updateLastRepublished();
+
+            if (current.getLastUpdatedTimestamp() >= content.getContentMetadata().getLastUpdatedTimestamp())
+            {
+                /* We have the current content, no need to update it! just leave this method now */
+                return false;
+            }
+            else
+            {
+                /* We have this content, but not the latest version, lets delete it so the new version will be added below */
+                try
+                {
+                    //System.out.println("Removing older content to update it");
+                    this.remove(content.getContentMetadata());
+                }
+                catch (ContentNotFoundException ex)
+                {
+                    /* This won't ever happen at this point since we only get here if the content is found, lets ignore it  */
+                }
+            }
+        }
+
+        /**
+         * If we got here means we don't have this content, or we need to update the content
+         * If we need to update the content, the code above would've already deleted it, so we just need to re-add it
+         */
+        try
+        {
+            //System.out.println("Adding new content.");
+            /* Keep track of this content in the entries manager */
+            KademliaStorageEntryMetadata sEntry = this.contentManager.put(content.getContentMetadata());
+
+            /* Now we store the content locally in a file */
+            String contentStorageFolder = this.getContentStorageFolderName(content.getContentMetadata().getKey());
+
+            try (FileOutputStream fout = new FileOutputStream(contentStorageFolder + File.separator + sEntry.hashCode() + ".kct");
+                    DataOutputStream dout = new DataOutputStream(fout))
+            {
+                this.getSerializer().write(content, dout);
+            }
+            return true;
+        }
+        catch (ContentExistException e)
+        {
+            /**
+             * Content already exist on the DHT
+             * This won't happen because above takes care of removing the content if it's older and needs to be updated,
+             * or returning if we already have the current content version.
+             */
+            return false;
+        }
+    }
+
+    @Override
+    public boolean store(KadContent content) throws IOException
+    {
+        return this.store(new JKademliaStorageEntry(content));
+    }
+
+    @Override
+    public JKademliaStorageEntry retrieve(KademliaId key, int hashCode) throws FileNotFoundException, IOException, ClassNotFoundException
+    {
+        String folder = this.getContentStorageFolderName(key);
+        DataInputStream din = new DataInputStream(new FileInputStream(folder + File.separator + hashCode + ".kct"));
+        return this.getSerializer().read(din);
+    }
+
+    @Override
+    public boolean contains(GetParameter param)
+    {
+        return this.contentManager.contains(param);
+    }
+
+    @Override
+    public JKademliaStorageEntry get(KademliaStorageEntryMetadata entry) throws IOException, NoSuchElementException
+    {
+        try
+        {
+            return this.retrieve(entry.getKey(), entry.hashCode());
+        }
+        catch (FileNotFoundException e)
+        {
+            System.err.println("Error while loading file for content. Message: " + e.getMessage());
+        }
+        catch (ClassNotFoundException e)
+        {
+            System.err.println("The class for some content was not found. Message: " + e.getMessage());
+        }
+
+        /* If we got here, means we got no entries */
+        throw new NoSuchElementException();
+    }
+
+    @Override
+    public JKademliaStorageEntry get(GetParameter param) throws NoSuchElementException, IOException
+    {
+        /* Load a KadContent if any exist for the given criteria */
+        try
+        {
+            KademliaStorageEntryMetadata e = this.contentManager.get(param);
+            return this.retrieve(e.getKey(), e.hashCode());
+        }
+        catch (FileNotFoundException e)
+        {
+            System.err.println("Error while loading file for content. Message: " + e.getMessage());
+        }
+        catch (ClassNotFoundException e)
+        {
+            System.err.println("The class for some content was not found. Message: " + e.getMessage());
+        }
+
+        /* If we got here, means we got no entries */
+        throw new NoSuchElementException();
+    }
+
+    @Override
+    public void remove(KadContent content) throws ContentNotFoundException
+    {
+        this.remove(new StorageEntryMetadata(content));
+    }
+
+    @Override
+    public void remove(KademliaStorageEntryMetadata entry) throws ContentNotFoundException
+    {
+        String folder = this.getContentStorageFolderName(entry.getKey());
+        File file = new File(folder + File.separator + entry.hashCode() + ".kct");
+
+        contentManager.remove(entry);
+
+        if (file.exists())
+        {
+            file.delete();
+        }
+        else
+        {
+            throw new ContentNotFoundException();
+        }
+    }
+
+    /**
+     * Get the name of the folder for which a content should be stored
+     *
+     * @param key The key of the content
+     *
+     * @return String The name of the folder
+     */
+    private String getContentStorageFolderName(KademliaId key)
+    {
+        /**
+         * Each content is stored in a folder named after the first 2 characters of the NodeId
+         *
+         * The name of the file containing the content is the hash of this content
+         */
+        String folderName = key.hexRepresentation().substring(0, 2);
+        File contentStorageFolder = new File(this.config.getNodeDataFolder(ownerId) + File.separator + folderName);
+
+        /* Create the content folder if it doesn't exist */
+        if (!contentStorageFolder.isDirectory())
+        {
+            contentStorageFolder.mkdir();
+        }
+
+        return contentStorageFolder.toString();
+    }
+
+    @Override
+    public List<KademliaStorageEntryMetadata> getStorageEntries()
+    {
+        return contentManager.getAllEntries();
+    }
+
+    @Override
+    public void putStorageEntries(List<KademliaStorageEntryMetadata> ientries)
+    {
+        for (KademliaStorageEntryMetadata e : ientries)
+        {
+            try
+            {
+                this.contentManager.put(e);
+            }
+            catch (ContentExistException ex)
+            {
+                /* Entry already exist, no need to store it again */
+            }
+        }
+    }
+
+    @Override
+    public synchronized String toString()
+    {
+        return this.contentManager.toString();
+    }
+}
+src/kademlia/routing/KademliaRoutingTable.java
+public interface KademliaRoutingTable
+{
+
+    /**
+     * Initialize the RoutingTable to it's default state
+     */
+    public void initialize();
+
+    /**
+     * Sets the configuration file for this routing table
+     *
+     * @param config
+     */
+    public void setConfiguration(KadConfiguration config);
+
+    /**
+     * Adds a contact to the routing table based on how far it is from the LocalNode.
+     *
+     * @param c The contact to add
+     */
+    public void insert(Contact c);
+
+    /**
+     * Adds a node to the routing table based on how far it is from the LocalNode.
+     *
+     * @param n The node to add
+     */
+    public void insert(Node n);
+
+    /**
+     * Compute the bucket ID in which a given node should be placed; the bucketId is computed based on how far the node is away from the Local Node.
+     *
+     * @param nid The NodeId for which we want to find which bucket it belong to
+     *
+     * @return Integer The bucket ID in which the given node should be placed.
+     */
+    public int getBucketId(KademliaId nid);
+
+    /**
+     * Find the closest set of contacts to a given NodeId
+     *
+     * @param target           The NodeId to find contacts close to
+     * @param numNodesRequired The number of contacts to find
+     *
+     * @return List A List of contacts closest to target
+     */
+    public List<Node> findClosest(KademliaId target, int numNodesRequired);
+
+    /**
+     * @return List A List of all Nodes in this RoutingTable
+     */
+    public List getAllNodes();
+
+    /**
+     * @return List A List of all Nodes in this RoutingTable
+     */
+    public List getAllContacts();
+
+    /**
+     * @return Bucket[] The buckets in this Kad Instance
+     */
+    public KademliaBucket[] getBuckets();
+
+    /**
+     * Method used by operations to notify the routing table of any contacts that have been unresponsive.
+     *
+     * @param contacts The set of unresponsive contacts
+     */
+    public void setUnresponsiveContacts(List<Node> contacts);
+
+    /**
+     * Method used by operations to notify the routing table of any contacts that have been unresponsive.
+     *
+     * @param n
+     */
+    public void setUnresponsiveContact(Node n);
+
+}
+src/kademlia/dht/KadContent.java
+public interface KadContent
+{
+
+    /**
+     * @return NodeId The DHT key for this content
+     */
+    public KademliaId getKey();
+
+    /**
+     * @return String The type of content
+     */
+    public String getType();
+
+    /**
+     * Each content will have an created date
+     * This allows systems to know when to delete a content form his/her machine
+     *
+     * @return long The create date of this content
+     */
+    public long getCreatedTimestamp();
+
+    /**
+     * Each content will have an update timestamp
+     * This allows the DHT to keep only the latest version of a content
+     *
+     * @return long The timestamp of when this content was last updated
+     */
+    public long getLastUpdatedTimestamp();
+
+    /**
+     * @return The ID of the owner of this content
+     */
+    public String getOwnerId();
+
+    /**
+     * Each content needs to be in byte format for transporting and storage,
+     * this method takes care of that.
+     *
+     * Each object is responsible for transforming itself to byte format since the
+     * structure of methods may differ.
+     *
+     * @return The content in byte format
+     */
+    public byte[] toSerializedForm();
+
+    /**
+     * Given the Content in byte format, read it
+     *
+     * @param data The object in byte format
+     *
+     * @return A new object from the given
+     */
+    public KadContent fromSerializedForm(byte[] data);
+}
+src/kademlia/util/serializer/JsonRoutingTableSerializer.java
+public class JsonRoutingTableSerializer implements KadSerializer<KademliaRoutingTable>
+{
+
+    private final Gson gson;
+
+    Type contactCollectionType = new TypeToken<List<Contact>>()
+    {
+    }.getType();
+
+    private final KadConfiguration config;
+
+    
+    {
+        gson = new Gson();
+    }
+
+    /**
+     * Initialize the class
+     *
+     * @param config
+     */
+    public JsonRoutingTableSerializer(KadConfiguration config)
+    {
+        this.config = config;
+    }
+
+    @Override
+    public void write(KademliaRoutingTable data, DataOutputStream out) throws IOException
+    {
+        try (JsonWriter writer = new JsonWriter(new OutputStreamWriter(out)))
+        {
+            writer.beginArray();
+
+            /* Write the basic JKademliaRoutingTable */
+            gson.toJson(data, JKademliaRoutingTable.class, writer);
+
+            /* Now Store the Contacts  */
+            gson.toJson(data.getAllContacts(), contactCollectionType, writer);
+
+            writer.endArray();
+        }
+    }
+
+    @Override
+    public KademliaRoutingTable read(DataInputStream in) throws IOException, ClassNotFoundException
+    {
+        try (DataInputStream din = new DataInputStream(in);
+                JsonReader reader = new JsonReader(new InputStreamReader(in)))
+        {
+            reader.beginArray();
+
+            /* Read the basic JKademliaRoutingTable */
+            KademliaRoutingTable tbl = gson.fromJson(reader, KademliaRoutingTable.class);
+            tbl.setConfiguration(config);
+            
+            /* Now get the Contacts and add them back to the JKademliaRoutingTable */
+            List<Contact> contacts = gson.fromJson(reader, contactCollectionType);
+            tbl.initialize();
+
+            for (Contact c : contacts)
+            {
+                tbl.insert(c);
+            }
+
+            reader.endArray();
+            /* Read and return the Content*/
+            return tbl;
+        }
+    }
+}
+src/kademlia/operation/ConnectOperation.java
+public class ConnectOperation implements Operation, Receiver
+{
+
+    public static final int MAX_CONNECT_ATTEMPTS = 5;       // Try 5 times to connect to a node
+
+    private final KadServer server;
+    private final KademliaNode localNode;
+    private final Node bootstrapNode;
+    private final KadConfiguration config;
+
+    private boolean error;
+    private int attempts;
+
+    /**
+     * @param server    The message server used to send/receive messages
+     * @param local     The local node
+     * @param bootstrap Node to use to bootstrap the local node onto the network
+     * @param config
+     */
+    public ConnectOperation(KadServer server, KademliaNode local, Node bootstrap, KadConfiguration config)
+    {
+        this.server = server;
+        this.localNode = local;
+        this.bootstrapNode = bootstrap;
+        this.config = config;
+    }
+
+    @Override
+    public synchronized void execute() throws IOException
+    {
+        try
+        {
+            /* Contact the bootstrap node */
+            this.error = true;
+            this.attempts = 0;
+            Message m = new ConnectMessage(this.localNode.getNode());
+
+            /* Send a connect message to the bootstrap node */
+            server.sendMessage(this.bootstrapNode, m, this);
+
+            /* If we haven't finished as yet, wait for a maximum of config.operationTimeout() time */
+            int totalTimeWaited = 0;
+            int timeInterval = 50;     // We re-check every 300 milliseconds
+            while (totalTimeWaited < this.config.operationTimeout())
+            {
+                if (error)
+                {
+                    wait(timeInterval);
+                    totalTimeWaited += timeInterval;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            if (error)
+            {
+                /* If we still haven't received any responses by then, do a routing timeout */
+                throw new RoutingException("ConnectOperation: Bootstrap node did not respond: " + bootstrapNode);
+            }
+
+            /* Perform lookup for our own ID to get nodes close to us */
+            Operation lookup = new NodeLookupOperation(this.server, this.localNode, this.localNode.getNode().getNodeId(), this.config);
+            lookup.execute();
+
+            /**
+             * Refresh buckets to get a good routing table
+             * After the above lookup operation, K nodes will be in our routing table,
+             * Now we try to populate all of our buckets.
+             */
+            new BucketRefreshOperation(this.server, this.localNode, this.config).execute();
+        }
+        catch (InterruptedException e)
+        {
+            System.err.println("Connect operation was interrupted. ");
+        }
+    }
+
+    /**
+     * Receives an AcknowledgeMessage from the bootstrap node.
+     *
+     * @param comm
+     */
+    @Override
+    public synchronized void receive(Message incoming, int comm)
+    {
+        /* The incoming message will be an acknowledgement message */
+        AcknowledgeMessage msg = (AcknowledgeMessage) incoming;
+
+        /* The bootstrap node has responded, insert it into our space */
+        this.localNode.getRoutingTable().insert(this.bootstrapNode);
+
+        /* We got a response, so the error is false */
+        error = false;
+
+        /* Wake up any waiting thread */
+        notify();
+    }
+
+    /**
+     * Resends a ConnectMessage to the boot strap node a maximum of MAX_ATTEMPTS
+     * times.
+     *
+     * @param comm
+     *
+     * @throws java.io.IOException
+     */
+    @Override
+    public synchronized void timeout(int comm) throws IOException
+    {
+        if (++this.attempts < MAX_CONNECT_ATTEMPTS)
+        {
+            this.server.sendMessage(this.bootstrapNode, new ConnectMessage(this.localNode.getNode()), this);
+        }
+        else
+        {
+            /* We just exit, so notify all other threads that are possibly waiting */
+            notify();
+        }
+    }
+}
+src/kademlia/dht/KademliaStorageEntry.java
+public interface KademliaStorageEntry
+{
+
+    /**
+     * Add the content to the storage entry
+     *
+     * @param data The content data in byte[] format
+     */
+    public void setContent(final byte[] data);
+
+    /**
+     * Get the content from this storage entry
+     *
+     * @return The content in byte format
+     */
+    public byte[] getContent();
+
+    /**
+     * Get the metadata for this storage entry
+     *
+     * @return the storage entry metadata
+     */
+    public KademliaStorageEntryMetadata getContentMetadata();
+}
+src/kademlia/message/MessageFactory.java
+public class MessageFactory implements KademliaMessageFactory
+{
+
+    private final KademliaNode localNode;
+    private final KademliaDHT dht;
+    private final KadConfiguration config;
+
+    public MessageFactory(KademliaNode local, KademliaDHT dht, KadConfiguration config)
+    {
+        this.localNode = local;
+        this.dht = dht;
+        this.config = config;
+    }
+
+    @Override
+    public Message createMessage(byte code, DataInputStream in) throws IOException
+    {
+        switch (code)
+        {
+            case AcknowledgeMessage.CODE:
+                return new AcknowledgeMessage(in);
+            case ConnectMessage.CODE:
+                return new ConnectMessage(in);
+            case ContentMessage.CODE:
+                return new ContentMessage(in);
+            case ContentLookupMessage.CODE:
+                return new ContentLookupMessage(in);
+            case NodeLookupMessage.CODE:
+                return new NodeLookupMessage(in);
+            case NodeReplyMessage.CODE:
+                return new NodeReplyMessage(in);
+            case SimpleMessage.CODE:
+                return new SimpleMessage(in);
+            case StoreContentMessage.CODE:
+                return new StoreContentMessage(in);
+            default:
+                //System.out.println(this.localNode + " - No Message handler found for message. Code: " + code);
+                return new SimpleMessage(in);
+
+        }
+    }
+
+    @Override
+    public Receiver createReceiver(byte code, KadServer server)
+    {
+        switch (code)
+        {
+            case ConnectMessage.CODE:
+                return new ConnectReceiver(server, this.localNode);
+            case ContentLookupMessage.CODE:
+                return new ContentLookupReceiver(server, this.localNode, this.dht, this.config);
+            case NodeLookupMessage.CODE:
+                return new NodeLookupReceiver(server, this.localNode, this.config);
+            case StoreContentMessage.CODE:
+                return new StoreContentReceiver(server, this.localNode, this.dht);
+            default:
+                //System.out.println("No receiver found for message. Code: " + code);
+                return new SimpleReceiver();
+        }
+    }
+}
+src/kademlia/util/serializer/JsonSerializer.java
+public class JsonSerializer<T> implements KadSerializer<T>
+{
+
+    private final Gson gson;
+
+    
+    {
+        gson = new Gson();
+    }
+
+    @Override
+    public void write(T data, DataOutputStream out) throws IOException
+    {
+        try (JsonWriter writer = new JsonWriter(new OutputStreamWriter(out)))
+        {
+            writer.beginArray();
+
+            /* Store the content type */
+            gson.toJson(data.getClass().getName(), String.class, writer);
+
+            /* Now Store the content */
+            gson.toJson(data, data.getClass(), writer);
+
+            writer.endArray();
+        }
+    }
+
+    @Override
+    public T read(DataInputStream in) throws IOException, ClassNotFoundException
+    {
+        try (DataInputStream din = new DataInputStream(in);
+                JsonReader reader = new JsonReader(new InputStreamReader(in)))
+        {
+            reader.beginArray();
+
+            /* Read the class name */
+            String className = gson.fromJson(reader, String.class);
+
+            /* Read and return the Content*/
+            T ret = gson.fromJson(reader, Class.forName(className));
+            
+            reader.endArray();
+            
+            return ret;
+        }
+    }
+}
+src/kademlia/exceptions/RoutingException.java
+public class RoutingException extends IOException
+{
+
+    public RoutingException()
+    {
+        super();
+    }
+
+    public RoutingException(String message)
+    {
+        super(message);
+    }
+}
+src/kademlia/node/KademliaId.java
+public class KademliaId implements Streamable, Serializable
+{
+
+    public final transient static int ID_LENGTH = 160;
+    private byte[] keyBytes;
+
+    /**
+     * Construct the NodeId from some string
+     *
+     * @param data The user generated key string
+     */
+    public KademliaId(String data)
+    {
+        keyBytes = data.getBytes();
+        if (keyBytes.length != ID_LENGTH / 8)
+        {
+            throw new IllegalArgumentException("Specified Data need to be " + (ID_LENGTH / 8) + " characters long.");
+        }
+    }
+
+    /**
+     * Generate a random key
+     */
+    public KademliaId()
+    {
+        keyBytes = new byte[ID_LENGTH / 8];
+        new Random().nextBytes(keyBytes);
+    }
+
+    /**
+     * Generate the NodeId from a given byte[]
+     *
+     * @param bytes
+     */
+    public KademliaId(byte[] bytes)
+    {
+        if (bytes.length != ID_LENGTH / 8)
+        {
+            throw new IllegalArgumentException("Specified Data need to be " + (ID_LENGTH / 8) + " characters long. Data Given: '" + new String(bytes) + "'");
+        }
+        this.keyBytes = bytes;
+    }
+
+    /**
+     * Load the NodeId from a DataInput stream
+     *
+     * @param in The stream from which to load the NodeId
+     *
+     * @throws IOException
+     */
+    public KademliaId(DataInputStream in) throws IOException
+    {
+        this.fromStream(in);
+    }
+
+    public byte[] getBytes()
+    {
+        return this.keyBytes;
+    }
+
+    /**
+     * @return The BigInteger representation of the key
+     */
+    public BigInteger getInt()
+    {
+        return new BigInteger(1, this.getBytes());
+    }
+
+    /**
+     * Compares a NodeId to this NodeId
+     *
+     * @param o The NodeId to compare to this NodeId
+     *
+     * @return boolean Whether the 2 NodeIds are equal
+     */
+    @Override
+    public boolean equals(Object o)
+    {
+        if (o instanceof KademliaId)
+        {
+            KademliaId nid = (KademliaId) o;
+            return this.hashCode() == nid.hashCode();
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode()
+    {
+        int hash = 7;
+        hash = 83 * hash + Arrays.hashCode(this.keyBytes);
+        return hash;
+    }
+
+    /**
+     * Checks the distance between this and another NodeId
+     *
+     * @param nid
+     *
+     * @return The distance of this NodeId from the given NodeId
+     */
+    public KademliaId xor(KademliaId nid)
+    {
+        byte[] result = new byte[ID_LENGTH / 8];
+        byte[] nidBytes = nid.getBytes();
+
+        for (int i = 0; i < ID_LENGTH / 8; i++)
+        {
+            result[i] = (byte) (this.keyBytes[i] ^ nidBytes[i]);
+        }
+
+        KademliaId resNid = new KademliaId(result);
+
+        return resNid;
+    }
+
+    /**
+     * Generates a NodeId that is some distance away from this NodeId
+     *
+     * @param distance in number of bits
+     *
+     * @return NodeId The newly generated NodeId
+     */
+    public KademliaId generateNodeIdByDistance(int distance)
+    {
+        byte[] result = new byte[ID_LENGTH / 8];
+
+        /* Since distance = ID_LENGTH - prefixLength, we need to fill that amount with 0's */
+        int numByteZeroes = (ID_LENGTH - distance) / 8;
+        int numBitZeroes = 8 - (distance % 8);
+
+        /* Filling byte zeroes */
+        for (int i = 0; i < numByteZeroes; i++)
+        {
+            result[i] = 0;
+        }
+
+        /* Filling bit zeroes */
+        BitSet bits = new BitSet(8);
+        bits.set(0, 8);
+
+        for (int i = 0; i < numBitZeroes; i++)
+        {
+            /* Shift 1 zero into the start of the value */
+            bits.clear(i);
+        }
+        bits.flip(0, 8);        // Flip the bits since they're in reverse order
+        result[numByteZeroes] = (byte) bits.toByteArray()[0];
+
+        /* Set the remaining bytes to Maximum value */
+        for (int i = numByteZeroes + 1; i < result.length; i++)
+        {
+            result[i] = Byte.MAX_VALUE;
+        }
+
+        return this.xor(new KademliaId(result));
+    }
+
+    /**
+     * Counts the number of leading 0's in this NodeId
+     *
+     * @return Integer The number of leading 0's
+     */
+    public int getFirstSetBitIndex()
+    {
+        int prefixLength = 0;
+
+        for (byte b : this.keyBytes)
+        {
+            if (b == 0)
+            {
+                prefixLength += 8;
+            }
+            else
+            {
+                /* If the byte is not 0, we need to count how many MSBs are 0 */
+                int count = 0;
+                for (int i = 7; i >= 0; i--)
+                {
+                    boolean a = (b & (1 << i)) == 0;
+                    if (a)
+                    {
+                        count++;
+                    }
+                    else
+                    {
+                        break;   // Reset the count if we encounter a non-zero number
+                    }
+                }
+
+                /* Add the count of MSB 0s to the prefix length */
+                prefixLength += count;
+
+                /* Break here since we've now covered the MSB 0s */
+                break;
+            }
+        }
+        return prefixLength;
+    }
+
+    /**
+     * Gets the distance from this NodeId to another NodeId
+     *
+     * @param to
+     *
+     * @return Integer The distance
+     */
+    public int getDistance(KademliaId to)
+    {
+        /**
+         * Compute the xor of this and to
+         * Get the index i of the first set bit of the xor returned NodeId
+         * The distance between them is ID_LENGTH - i
+         */
+        return ID_LENGTH - this.xor(to).getFirstSetBitIndex();
+    }
+
+    @Override
+    public void toStream(DataOutputStream out) throws IOException
+    {
+        /* Add the NodeId to the stream */
+        out.write(this.getBytes());
+    }
+
+    @Override
+    public final void fromStream(DataInputStream in) throws IOException
+    {
+        byte[] input = new byte[ID_LENGTH / 8];
+        in.readFully(input);
+        this.keyBytes = input;
+    }
+
+    public String hexRepresentation()
+    {
+        /* Returns the hex format of this NodeId */
+        BigInteger bi = new BigInteger(1, this.keyBytes);
+        return String.format("%0" + (this.keyBytes.length << 1) + "X", bi);
+    }
+
+    @Override
+    public String toString()
+    {
+        return this.hexRepresentation();
+    }
+
+}
+src/kademlia/dht/KademliaDHT.java
+public interface KademliaDHT
+{
+
+    /**
+     * Initialize this DHT to it's default state
+     */
+    public void initialize();
+
+    /**
+     * Set a new configuration. Mainly used when we restore the DHT state from a file
+     *
+     * @param con The new configuration file
+     */
+    public void setConfiguration(KadConfiguration con);
+
+    /**
+     * Creates a new Serializer or returns an existing serializer
+     *
+     * @return The new ContentSerializer
+     */
+    public KadSerializer<JKademliaStorageEntry> getSerializer();
+
+    /**
+     * Handle storing content locally
+     *
+     * @param content The DHT content to store
+     *
+     * @return boolean true if we stored the content, false if the content already exists and is up to date
+     *
+     * @throws java.io.IOException
+     */
+    public boolean store(JKademliaStorageEntry content) throws IOException;
+
+    public boolean store(KadContent content) throws IOException;
+
+    /**
+     * Retrieves a Content from local storage
+     *
+     * @param key      The Key of the content to retrieve
+     * @param hashCode The hash code of the content to retrieve
+     *
+     * @return A KadContent object
+     *
+     * @throws java.io.FileNotFoundException
+     * @throws java.lang.ClassNotFoundException
+     */
+    public JKademliaStorageEntry retrieve(KademliaId key, int hashCode) throws FileNotFoundException, IOException, ClassNotFoundException;
+
+    /**
+     * Check if any content for the given criteria exists in this DHT
+     *
+     * @param param The content search criteria
+     *
+     * @return boolean Whether any content exist that satisfy the criteria
+     */
+    public boolean contains(GetParameter param);
+
+    /**
+     * Retrieve and create a KadContent object given the StorageEntry object
+     *
+     * @param entry The StorageEntry used to retrieve this content
+     *
+     * @return KadContent The content object
+     *
+     * @throws java.io.IOException
+     */
+    public JKademliaStorageEntry get(KademliaStorageEntryMetadata entry) throws IOException, NoSuchElementException;
+
+    /**
+     * Get the StorageEntry for the content if any exist.
+     *
+     * @param param The parameters used to filter the content needed
+     *
+     * @return KadContent A KadContent found on the DHT satisfying the given criteria
+     *
+     * @throws java.io.IOException
+     */
+    public JKademliaStorageEntry get(GetParameter param) throws NoSuchElementException, IOException;
+
+    /**
+     * Delete a content from local storage
+     *
+     * @param content The Content to Remove
+     *
+     *
+     * @throws kademlia.exceptions.ContentNotFoundException
+     */
+    public void remove(KadContent content) throws ContentNotFoundException;
+
+    public void remove(KademliaStorageEntryMetadata entry) throws ContentNotFoundException;
+
+    /**
+     * @return A List of all StorageEntries for this node
+     */
+    public List<KademliaStorageEntryMetadata> getStorageEntries();
+
+    /**
+     * Used to add a list of storage entries for existing content to the DHT.
+     * Mainly used when retrieving StorageEntries from a saved state file.
+     *
+     * @param ientries The entries to add
+     */
+    public void putStorageEntries(List<KademliaStorageEntryMetadata> ientries);
+
+}
+src/kademlia/operation/Operation.java
+public interface Operation
+{
+
+    /**
+     * Starts an operation and returns when the operation is finished
+     *
+     * @throws kademlia.exceptions.RoutingException
+     */
+    public void execute() throws IOException, RoutingException;
+}
+src/kademlia/routing/JKademliaRoutingTable.java
+public class JKademliaRoutingTable implements KademliaRoutingTable
+{
+
+    private final Node localNode;  // The current node
+    private transient KademliaBucket[] buckets;
+
+    private transient KadConfiguration config;
+
+    public JKademliaRoutingTable(Node localNode, KadConfiguration config)
+    {
+        this.localNode = localNode;
+        this.config = config;
+
+        /* Initialize all of the buckets to a specific depth */
+        this.initialize();
+
+        /* Insert the local node */
+        this.insert(localNode);
+    }
+
+    /**
+     * Initialize the JKademliaRoutingTable to it's default state
+     */
+    @Override
+    public final void initialize()
+    {
+        this.buckets = new KademliaBucket[KademliaId.ID_LENGTH];
+        for (int i = 0; i < KademliaId.ID_LENGTH; i++)
+        {
+            buckets[i] = new JKademliaBucket(i, this.config);
+        }
+    }
+
+    @Override
+    public void setConfiguration(KadConfiguration config)
+    {
+        this.config = config;
+    }
+
+    /**
+     * Adds a contact to the routing table based on how far it is from the LocalNode.
+     *
+     * @param c The contact to add
+     */
+    @Override
+    public synchronized final void insert(Contact c)
+    {
+        this.buckets[this.getBucketId(c.getNode().getNodeId())].insert(c);
+    }
+
+    /**
+     * Adds a node to the routing table based on how far it is from the LocalNode.
+     *
+     * @param n The node to add
+     */
+    @Override
+    public synchronized final void insert(Node n)
+    {
+        this.buckets[this.getBucketId(n.getNodeId())].insert(n);
+    }
+
+    /**
+     * Compute the bucket ID in which a given node should be placed; the bucketId is computed based on how far the node is away from the Local Node.
+     *
+     * @param nid The NodeId for which we want to find which bucket it belong to
+     *
+     * @return Integer The bucket ID in which the given node should be placed.
+     */
+    @Override
+    public final int getBucketId(KademliaId nid)
+    {
+        int bId = this.localNode.getNodeId().getDistance(nid) - 1;
+
+        /* If we are trying to insert a node into it's own routing table, then the bucket ID will be -1, so let's just keep it in bucket 0 */
+        return bId < 0 ? 0 : bId;
+    }
+
+    /**
+     * Find the closest set of contacts to a given NodeId
+     *
+     * @param target           The NodeId to find contacts close to
+     * @param numNodesRequired The number of contacts to find
+     *
+     * @return List A List of contacts closest to target
+     */
+    @Override
+    public synchronized final List<Node> findClosest(KademliaId target, int numNodesRequired)
+    {
+        TreeSet<Node> sortedSet = new TreeSet<>(new KeyComparator(target));
+        sortedSet.addAll(this.getAllNodes());
+
+        List<Node> closest = new ArrayList<>(numNodesRequired);
+
+        /* Now we have the sorted set, lets get the top numRequired */
+        int count = 0;
+        for (Node n : sortedSet)
+        {
+            closest.add(n);
+            if (++count == numNodesRequired)
+            {
+                break;
+            }
+        }
+        return closest;
+    }
+
+    /**
+     * @return List A List of all Nodes in this JKademliaRoutingTable
+     */
+    @Override
+    public synchronized final List<Node> getAllNodes()
+    {
+        List<Node> nodes = new ArrayList<>();
+
+        for (KademliaBucket b : this.buckets)
+        {
+            for (Contact c : b.getContacts())
+            {
+                nodes.add(c.getNode());
+            }
+        }
+
+        return nodes;
+    }
+
+    /**
+     * @return List A List of all Nodes in this JKademliaRoutingTable
+     */
+    @Override
+    public final List<Contact> getAllContacts()
+    {
+        List<Contact> contacts = new ArrayList<>();
+
+        for (KademliaBucket b : this.buckets)
+        {
+            contacts.addAll(b.getContacts());
+        }
+
+        return contacts;
+    }
+
+    /**
+     * @return Bucket[] The buckets in this Kad Instance
+     */
+    @Override
+    public final KademliaBucket[] getBuckets()
+    {
+        return this.buckets;
+    }
+
+    /**
+     * Set the KadBuckets of this routing table, mainly used when retrieving saved state
+     *
+     * @param buckets
+     */
+    public final void setBuckets(KademliaBucket[] buckets)
+    {
+        this.buckets = buckets;
+    }
+
+    /**
+     * Method used by operations to notify the routing table of any contacts that have been unresponsive.
+     *
+     * @param contacts The set of unresponsive contacts
+     */
+    @Override
+    public void setUnresponsiveContacts(List<Node> contacts)
+    {
+        if (contacts.isEmpty())
+        {
+            return;
+        }
+        for (Node n : contacts)
+        {
+            this.setUnresponsiveContact(n);
+        }
+    }
+
+    /**
+     * Method used by operations to notify the routing table of any contacts that have been unresponsive.
+     *
+     * @param n
+     */
+    @Override
+    public synchronized void setUnresponsiveContact(Node n)
+    {
+        int bucketId = this.getBucketId(n.getNodeId());
+
+        /* Remove the contact from the bucket */
+        this.buckets[bucketId].removeNode(n);
+    }
+
+    @Override
+    public synchronized final String toString()
+    {
+        StringBuilder sb = new StringBuilder("\nPrinting Routing Table Started ***************** \n");
+        int totalContacts = 0;
+        for (KademliaBucket b : this.buckets)
+        {
+            if (b.numContacts() > 0)
+            {
+                totalContacts += b.numContacts();
+                sb.append("# nodes in Bucket with depth ");
+                sb.append(b.getDepth());
+                sb.append(": ");
+                sb.append(b.numContacts());
+                sb.append("\n");
+                sb.append(b.toString());
+                sb.append("\n");
+            }
+        }
+
+        sb.append("\nTotal Contacts: ");
+        sb.append(totalContacts);
+        sb.append("\n\n");
+
+        sb.append("Printing Routing Table Ended ******************** ");
+
+        return sb.toString();
+    }
+
+}
+src/kademlia/util/serializer/JsonDHTSerializer.java
+public class JsonDHTSerializer implements KadSerializer<KademliaDHT>
+{
+
+    private final Gson gson;
+    private final Type storageEntriesCollectionType;
+
+    
+    {
+        gson = new Gson();
+
+        storageEntriesCollectionType = new TypeToken<List<KademliaStorageEntryMetadata>>()
+        {
+        }.getType();
+    }
+
+    @Override
+    public void write(KademliaDHT data, DataOutputStream out) throws IOException
+    {
+        try (JsonWriter writer = new JsonWriter(new OutputStreamWriter(out)))
+        {
+            writer.beginArray();
+
+            /* Write the basic DHT */
+            gson.toJson(data, DHT.class, writer);
+
+            /* Now Store the Entries  */
+            gson.toJson(data.getStorageEntries(), this.storageEntriesCollectionType, writer);
+
+            writer.endArray();
+        }
+
+    }
+
+    @Override
+    public KademliaDHT read(DataInputStream in) throws IOException, ClassNotFoundException
+    {
+        try (DataInputStream din = new DataInputStream(in);
+                JsonReader reader = new JsonReader(new InputStreamReader(in)))
+        {
+            reader.beginArray();
+
+            /* Read the basic DHT */
+            DHT dht = gson.fromJson(reader, DHT.class);
+            dht.initialize();
+
+            /* Now get the entries and add them back to the DHT */
+            List<KademliaStorageEntryMetadata> entries = gson.fromJson(reader, this.storageEntriesCollectionType);
+            dht.putStorageEntries(entries);
+
+            reader.endArray();
+            return dht;
+        }
+    }
+}
+src/kademlia/exceptions/ContentNotFoundException.java
+public class ContentNotFoundException extends Exception
+{
+
+    public ContentNotFoundException()
+    {
+        super();
+    }
+
+    public ContentNotFoundException(String message)
+    {
+        super(message);
+    }
+}
+src/kademlia/dht/GetParameter.java
+public class GetParameter
+{
+
+    private KademliaId key;
+    private String ownerId = null;
+    private String type = null;
+
+    /**
+     * Construct a GetParameter to search for data by NodeId and owner
+     *
+     * @param key
+     * @param type
+     */
+    public GetParameter(KademliaId key, String type)
+    {
+        this.key = key;
+        this.type = type;
+    }
+
+    /**
+     * Construct a GetParameter to search for data by NodeId, owner, type
+     *
+     * @param key
+     * @param type
+     * @param owner
+     */
+    public GetParameter(KademliaId key, String type, String owner)
+    {
+        this(key, type);
+        this.ownerId = owner;
+    }
+
+    /**
+     * Construct our get parameter from a Content
+     *
+     * @param c
+     */
+    public GetParameter(KadContent c)
+    {
+        this.key = c.getKey();
+
+        if (c.getType() != null)
+        {
+            this.type = c.getType();
+        }
+
+        if (c.getOwnerId() != null)
+        {
+            this.ownerId = c.getOwnerId();
+        }
+    }
+
+    /**
+     * Construct our get parameter from a StorageEntryMeta data
+     *
+     * @param md
+     */
+    public GetParameter(KademliaStorageEntryMetadata md)
+    {
+        this.key = md.getKey();
+
+        if (md.getType() != null)
+        {
+            this.type = md.getType();
+        }
+
+        if (md.getOwnerId() != null)
+        {
+            this.ownerId = md.getOwnerId();
+        }
+    }
+
+    public KademliaId getKey()
+    {
+        return this.key;
+    }
+
+    public void setOwnerId(String ownerId)
+    {
+        this.ownerId = ownerId;
+    }
+
+    public String getOwnerId()
+    {
+        return this.ownerId;
+    }
+
+    public void setType(String type)
+    {
+        this.type = type;
+    }
+
+    public String getType()
+    {
+        return this.type;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "GetParameter - [Key: " + key + "][Owner: " + this.ownerId + "][Type: " + this.type + "]";
+    }
+}
+src/kademlia/operation/ContentLookupOperation.java
+public class ContentLookupOperation implements Operation, Receiver
+{
+
+    /* Constants */
+    private static final Byte UNASKED = (byte) 0x00;
+    private static final Byte AWAITING = (byte) 0x01;
+    private static final Byte ASKED = (byte) 0x02;
+    private static final Byte FAILED = (byte) 0x03;
+
+    private final KadServer server;
+    private final JKademliaNode localNode;
+    private JKademliaStorageEntry contentFound = null;
+    private final KadConfiguration config;
+
+    private final ContentLookupMessage lookupMessage;
+
+    private boolean isContentFound;
+    private final SortedMap<Node, Byte> nodes;
+
+    /* Tracks messages in transit and awaiting reply */
+    private final Map<Integer, Node> messagesTransiting;
+
+    /* Used to sort nodes */
+    private final Comparator comparator;
+
+    /* Statistical information */
+    private final RouteLengthChecker routeLengthChecker;
+
+    
+    {
+        messagesTransiting = new HashMap<>();
+        isContentFound = false;
+        routeLengthChecker = new RouteLengthChecker();
+    }
+
+    /**
+     * @param server
+     * @param localNode
+     * @param params    The parameters to search for the content which we need to find
+     * @param config
+     */
+    public ContentLookupOperation(KadServer server, JKademliaNode localNode, GetParameter params, KadConfiguration config)
+    {
+        /* Construct our lookup message */
+        this.lookupMessage = new ContentLookupMessage(localNode.getNode(), params);
+
+        this.server = server;
+        this.localNode = localNode;
+        this.config = config;
+
+        /**
+         * We initialize a TreeMap to store nodes.
+         * This map will be sorted by which nodes are closest to the lookupId
+         */
+        this.comparator = new KeyComparator(params.getKey());
+        this.nodes = new TreeMap(this.comparator);
+    }
+
+    /**
+     * @throws java.io.IOException
+     * @throws kademlia.exceptions.RoutingException
+     */
+    @Override
+    public synchronized void execute() throws IOException, RoutingException
+    {
+        try
+        {
+            /* Set the local node as already asked */
+            nodes.put(this.localNode.getNode(), ASKED);
+
+            /**
+             * We add all nodes here instead of the K-Closest because there may be the case that the K-Closest are offline
+             * - The operation takes care of looking at the K-Closest.
+             */
+            List<Node> allNodes = this.localNode.getRoutingTable().getAllNodes();
+            this.addNodes(allNodes);
+            
+            /* Also add the initial set of nodes to the routeLengthChecker */
+            this.routeLengthChecker.addInitialNodes(allNodes);
+
+            /**
+             * If we haven't found the requested amount of content as yet,
+             * keey trying until config.operationTimeout() time has expired
+             */
+            int totalTimeWaited = 0;
+            int timeInterval = 10;     // We re-check every n milliseconds
+            while (totalTimeWaited < this.config.operationTimeout())
+            {
+                if (!this.askNodesorFinish() && !isContentFound)
+                {
+                    wait(timeInterval);
+                    totalTimeWaited += timeInterval;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+        catch (InterruptedException e)
+        {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Add nodes from this list to the set of nodes to lookup
+     *
+     * @param list The list from which to add nodes
+     */
+    public void addNodes(List<Node> list)
+    {
+        for (Node o : list)
+        {
+            /* If this node is not in the list, add the node */
+            if (!nodes.containsKey(o))
+            {
+                nodes.put(o, UNASKED);
+            }
+        }
+    }
+
+    /**
+     * Asks some of the K closest nodes seen but not yet queried.
+     * Assures that no more than DefaultConfiguration.CONCURRENCY messages are in transit at a time
+     *
+     * This method should be called every time a reply is received or a timeout occurs.
+     *
+     * If all K closest nodes have been asked and there are no messages in transit,
+     * the algorithm is finished.
+     *
+     * @return <code>true</code> if finished OR <code>false</code> otherwise
+     */
+    private boolean askNodesorFinish() throws IOException
+    {
+        /* If >= CONCURRENCY nodes are in transit, don't do anything */
+        if (this.config.maxConcurrentMessagesTransiting() <= this.messagesTransiting.size())
+        {
+            return false;
+        }
+
+        /* Get unqueried nodes among the K closest seen that have not FAILED */
+        List<Node> unasked = this.closestNodesNotFailed(UNASKED);
+
+        if (unasked.isEmpty() && this.messagesTransiting.isEmpty())
+        {
+            /* We have no unasked nodes nor any messages in transit, we're finished! */
+            return true;
+        }
+
+        /* Sort nodes according to criteria */
+        Collections.sort(unasked, this.comparator);
+
+        /**
+         * Send messages to nodes in the list;
+         * making sure than no more than CONCURRENCY messsages are in transit
+         */
+        for (int i = 0; (this.messagesTransiting.size() < this.config.maxConcurrentMessagesTransiting()) && (i < unasked.size()); i++)
+        {
+            Node n = (Node) unasked.get(i);
+
+            int comm = server.sendMessage(n, lookupMessage, this);
+
+            this.nodes.put(n, AWAITING);
+            this.messagesTransiting.put(comm, n);
+        }
+
+        /* We're not finished as yet, return false */
+        return false;
+    }
+
+    /**
+     * Find The K closest nodes to the target lookupId given that have not FAILED.
+     * From those K, get those that have the specified status
+     *
+     * @param status The status of the nodes to return
+     *
+     * @return A List of the closest nodes
+     */
+    private List<Node> closestNodesNotFailed(Byte status)
+    {
+        List<Node> closestNodes = new ArrayList<>(this.config.k());
+        int remainingSpaces = this.config.k();
+
+        for (Map.Entry e : this.nodes.entrySet())
+        {
+            if (!FAILED.equals(e.getValue()))
+            {
+                if (status.equals(e.getValue()))
+                {
+                    /* We got one with the required status, now add it */
+                    closestNodes.add((Node) e.getKey());
+                }
+
+                if (--remainingSpaces == 0)
+                {
+                    break;
+                }
+            }
+        }
+
+        return closestNodes;
+    }
+
+    @Override
+    public synchronized void receive(Message incoming, int comm) throws IOException, RoutingException
+    {
+        if (this.isContentFound)
+        {
+            return;
+        }
+
+        if (incoming instanceof ContentMessage)
+        {
+            /* The reply received is a content message with the required content, take it in */
+            ContentMessage msg = (ContentMessage) incoming;
+
+            /* Add the origin node to our routing table */
+            this.localNode.getRoutingTable().insert(msg.getOrigin());
+
+            /* Get the Content and check if it satisfies the required parameters */
+            JKademliaStorageEntry content = msg.getContent();
+            this.contentFound = content;
+            this.isContentFound = true;
+        }
+        else
+        {
+            /* The reply received is a NodeReplyMessage with nodes closest to the content needed */
+            NodeReplyMessage msg = (NodeReplyMessage) incoming;
+
+            /* Add the origin node to our routing table */
+            Node origin = msg.getOrigin();
+            this.localNode.getRoutingTable().insert(origin);
+
+            /* Set that we've completed ASKing the origin node */
+            this.nodes.put(origin, ASKED);
+
+            /* Remove this msg from messagesTransiting since it's completed now */
+            this.messagesTransiting.remove(comm);
+            
+            /* Add the received nodes to the routeLengthChecker */
+            this.routeLengthChecker.addNodes(msg.getNodes(), origin);
+
+            /* Add the received nodes to our nodes list to query */
+            this.addNodes(msg.getNodes());
+            this.askNodesorFinish();
+        }
+    }
+
+    /**
+     * A node does not respond or a packet was lost, we set this node as failed
+     *
+     * @param comm
+     *
+     * @throws java.io.IOException
+     */
+    @Override
+    public synchronized void timeout(int comm) throws IOException
+    {
+        /* Get the node associated with this communication */
+        Node n = this.messagesTransiting.get(new Integer(comm));
+
+        if (n == null)
+        {
+            throw new UnknownMessageException("Unknown comm: " + comm);
+        }
+
+        /* Mark this node as failed and inform the routing table that it's unresponsive */
+        this.nodes.put(n, FAILED);
+        this.localNode.getRoutingTable().setUnresponsiveContact(n);
+        this.messagesTransiting.remove(comm);
+
+        this.askNodesorFinish();
+    }
+    
+    /**
+     * @return Whether the content was found or not.
+     */
+    public boolean isContentFound()
+    {
+        return this.isContentFound;
+    }
+
+    /**
+     * @return The list of all content found during the lookup operation
+     *
+     * @throws kademlia.exceptions.ContentNotFoundException
+     */
+    public JKademliaStorageEntry getContentFound() throws ContentNotFoundException
+    {
+        if (this.isContentFound)
+        {
+            return this.contentFound;
+        }
+        else
+        {
+            throw new ContentNotFoundException("No Value was found for the given key.");
+        }
+    }
+
+    /**
+     * @return How many hops it took in order to get to the content.
+     */
+    public int routeLength()
+    {
+        return this.routeLengthChecker.getRouteLength();
+    }
+}
+src/kademlia/node/Node.java
+public class Node implements Streamable, Serializable
+{
+
+    private KademliaId nodeId;
+    private InetAddress inetAddress;
+    private int port;
+    private final String strRep;
+
+    public Node(KademliaId nid, InetAddress ip, int port)
+    {
+        this.nodeId = nid;
+        this.inetAddress = ip;
+        this.port = port;
+        this.strRep = this.nodeId.toString();
+    }
+
+    /**
+     * Load the Node's data from a DataInput stream
+     *
+     * @param in
+     *
+     * @throws IOException
+     */
+    public Node(DataInputStream in) throws IOException
+    {
+        this.fromStream(in);
+        this.strRep = this.nodeId.toString();
+    }
+
+    /**
+     * Set the InetAddress of this node
+     *
+     * @param addr The new InetAddress of this node
+     */
+    public void setInetAddress(InetAddress addr)
+    {
+        this.inetAddress = addr;
+    }
+
+    /**
+     * @return The NodeId object of this node
+     */
+    public KademliaId getNodeId()
+    {
+        return this.nodeId;
+    }
+
+    /**
+     * Creates a SocketAddress for this node
+     *
+     * @return
+     */
+    public InetSocketAddress getSocketAddress()
+    {
+        return new InetSocketAddress(this.inetAddress, this.port);
+    }
+
+    @Override
+    public void toStream(DataOutputStream out) throws IOException
+    {
+        /* Add the NodeId to the stream */
+        this.nodeId.toStream(out);
+
+        /* Add the Node's IP address to the stream */
+        byte[] a = inetAddress.getAddress();
+        if (a.length != 4)
+        {
+            throw new RuntimeException("Expected InetAddress of 4 bytes, got " + a.length);
+        }
+        out.write(a);
+
+        /* Add the port to the stream */
+        out.writeInt(port);
+    }
+
+    @Override
+    public final void fromStream(DataInputStream in) throws IOException
+    {
+        /* Load the NodeId */
+        this.nodeId = new KademliaId(in);
+
+        /* Load the IP Address */
+        byte[] ip = new byte[4];
+        in.readFully(ip);
+        this.inetAddress = InetAddress.getByAddress(ip);
+
+        /* Read in the port */
+        this.port = in.readInt();
+    }
+
+    @Override
+    public boolean equals(Object o)
+    {
+        if (o instanceof Node)
+        {
+            Node n = (Node) o;
+            if (n == this)
+            {
+                return true;
+            }
+            return this.getNodeId().equals(n.getNodeId());
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return this.getNodeId().hashCode();
+    }
+
+    @Override
+    public String toString()
+    {
+        return this.getNodeId().toString();
+    }
+}

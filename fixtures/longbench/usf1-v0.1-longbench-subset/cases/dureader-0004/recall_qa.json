@@ -1,0 +1,10 @@
+[
+  {
+    "id": "dureader-0004-answer",
+    "score": "semantic",
+    "question": "这是 LongBench 中文搜索问答任务。任务输入是搜索查询，请根据 archive context 给出最能回答该查询的简短结论。\n不要复述无关剧情细节；只输出答案短语或短句，不要解释。\n搜索查询：\n清除cache分区是什么意思",
+    "golds": [
+      "一般指的是清理缓存，以便后面系统更好地运行。"
+    ]
+  }
+]
