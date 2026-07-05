@@ -1,1 +1,0 @@
-格式保护实验 segmented。candidate_id = zpix - 12 - t030 - l0 - w750。balanced_id = zpix - 14 - t030 - l0 - w1024。model_id = google - antigravity/gemini - 3.5 - flash。exact_phrase = 低帧数占用。file_path = packages/coding-agent/src/config/model-registry.ts。sha256 = ed39f02845e8c0b8cdba275432250fb03e8528826f058bc151753bd62b44b744。

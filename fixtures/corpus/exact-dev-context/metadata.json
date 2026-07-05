@@ -1,6 +1,0 @@
-{
-  "id": "exact-dev-context",
-  "language": "zh-en-code",
-  "description": "Compact developer-context corpus with exact model IDs, paths, URLs, commands, versions, hashes, JSON keys, and semantic decisions.",
-  "primary_metrics": ["exact_EM", "semantic_F1", "pixels"]
-}

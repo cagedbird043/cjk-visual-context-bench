@@ -1,46 +1,91 @@
 # CJK Visual Context Bench
 
-Experimental benchmark for dense bitmap visual-context compression.
+Benchmark for replacing OMP `snapcompact` image rendering with a CJK-capable bitmap archive renderer.
 
-Goal: turn real CJK-heavy developer context into compact bitmap images, ask vision models to read them, and measure whether the context remains usable.
+Goal: take full OMP conversation history, serialize it like `packages/snapcompact`, render dense bitmap frames under OMP-like frame budgets, then measure whether a vision model can continue from those frames with the same recall quality as current `snapcompact`.
 
-This is not a paper repo. It is an experiment repo: render, ask, score, publish data.
+This repo is experiment-first: real contexts, rendered frames, QA recall, exact-value recall, absent-fact checks, public data.
 
-## Current research question
+## Target
 
-Can a bitmap image carry real developer context reliably enough for LLM context compaction?
+Not OCR.
 
-The hard part is not Chinese prose only. Real developer context includes:
+Not one short image.
 
-- Chinese and English text
-- model IDs
-- file paths
-- URLs
-- commands
-- versions
-- hashes
-- JSON keys
-- error codes
-- candidate IDs
+Not hand-written tiny exact-value prompts.
 
-The benchmark therefore measures both:
+The target is OMP `snapcompact` architecture:
 
-- semantic QA: does the model understand the context?
-- exact QA: can the model recover exact developer values, character-for-character?
+```text
+full prior session history -> serialized archive text -> bitmap frames -> later model input
+```
 
-## Current finding
+The new renderer must compete with the existing renderer used by:
 
-Compact stream rendering is mandatory. Bitmap images must not preserve document layout.
+```text
+packages/snapcompact/src/snapcompact.ts
+```
 
-No headings, blank lines, indentation, paragraph spacing, or page-like layout should survive in the image. Layout wastes pixels. Structure belongs in corpus metadata and questions, not in the bitmap.
+## Benchmark contract
 
-Early results:
+Use real or exported OMP session contexts, not synthetic tiny text.
 
-- ordinary anti-aliased CJK fonts fail under dense 1-bit rendering
-- pixel fonts are the right search space
-- zpix is the current baseline
-- exact values expose glyph ambiguity such as `l0` vs `10` and `w750` vs `v750`
-- larger font sizes may be better engineering points after layout removal
+Each benchmark case must keep one canonical source transcript and render it through multiple carriers:
+
+```text
+text baseline
+current snapcompact renderer
+CJK visual-context renderer variants
+```
+
+Only carrier changes. Facts, QA, and source transcript stay fixed.
+
+## What must be measured
+
+Primary metrics:
+
+```text
+continuation recall F1
+task-state exact match
+constraint recall exact match
+tool-result recall
+exact-value recovery
+chronology/order accuracy
+absent-fact false positive rate
+pixels / frame count / image token estimate
+```
+
+Text baseline is ceiling. Current `snapcompact` is incumbent. CJK renderer must beat incumbent on CJK-heavy developer history and not collapse on mixed English/code history.
+
+## Input material
+
+Use OMP data/session directories as source material. Do not generate long fake corpora by hand.
+
+Acceptable source material:
+
+```text
+real OMP session transcripts
+saved compaction archives
+tool-heavy debugging sessions
+mixed CJK/English coding sessions
+long command/result histories
+```
+
+Tiny synthetic files may exist only as smoke tests for renderer plumbing. They are not benchmark evidence.
+
+## Required fixture shape
+
+Future fixtures should look like:
+
+```text
+fixtures/archives/<case>/
+  messages.json        real or exported OMP messages
+  serialized.txt       snapcompact-style serialized source
+  qa.json              semantic/exact/constraint/absent questions
+  metadata.json        source, length, language mix, notes
+```
+
+Generated outputs stay under `runs/` and are gitignored. Curated benchmark summaries go under `reports/`.
 
 ## Setup
 
@@ -49,13 +94,11 @@ cargo check
 scripts/fetch-fonts.sh
 ```
 
-Fonts are downloaded on demand. Font binaries are not committed. Exact sources, versions, hashes, and licenses live in:
+Fonts are downloaded on demand. Font binaries are not committed. Sources, versions, hashes, and licenses live in:
 
 ```text
 fonts/fonts.lock.json
 ```
-
-## Run examples
 
 Set any OpenAI-compatible vision endpoint:
 
@@ -65,66 +108,18 @@ export OPENAI_API_KEY=...
 export OPENAI_MODEL=google-antigravity/gemini-3.5-flash
 ```
 
-Render a compact bitmap:
-
-```sh
-cargo run -- render \
-  --text fixtures/corpus/exact-dev-context/source.txt \
-  --out runs/example/context.png \
-  --font fonts/zpix.ttf \
-  --font-size 12 \
-  --threshold 0.30 \
-  --line-spacing 0 \
-  --max-width 750
-```
-
-Run exact-value QA:
-
-```sh
-cargo run -- qa \
-  --image runs/example/context.png \
-  --qa fixtures/corpus/exact-dev-context/exact_qa.json \
-  --out runs/example/exact.jsonl
-```
-
-Run semantic QA:
-
-```sh
-cargo run -- qa \
-  --image runs/example/context.png \
-  --qa fixtures/corpus/exact-dev-context/semantic_qa.json \
-  --out runs/example/semantic.jsonl
-```
-
 ## Repository layout
 
 ```text
-src/                 Rust renderer, model calls, scorers
-fixtures/corpus/     benchmark corpora
-matrices/            render parameter grids
-scripts/             reproducible shell entrypoints
+src/                  renderer, model calls, scorers
+fixtures/             benchmark inputs and small smoke fixtures
+matrices/             render parameter grids
+scripts/              reproducible entrypoints
 fonts/fonts.lock.json font asset lockfile
-runs/                generated results, gitignored
+runs/                 generated results, gitignored
+reports/              curated public benchmark summaries
 ```
-
-## Scoring
-
-Exact QA:
-
-```text
-score = exact
-wrong one character = fail
-```
-
-Semantic QA:
-
-```text
-score = semantic
-normalized char-F1 after whitespace/punctuation normalization
-```
-
-OCR exists only as a diagnostic. Product usefulness is judged by QA, exact value recovery, hallucination/refusal behavior, and pixel cost.
 
 ## Status
 
-Research prototype. Public data and reports will grow from batch benchmark runs.
+Research prototype. Misleading short synthetic experiments have been removed. Next valid work: build OMP-session archive recall benchmark aligned with `snapcompact`.
