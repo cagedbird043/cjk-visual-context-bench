@@ -1,0 +1,137 @@
+[
+  {
+    "name": "zpix-12-t030-l0-w750",
+    "font_path": "fonts/zpix.ttf",
+    "font_size": 12.0,
+    "threshold": 0.30,
+    "line_spacing": 0.0,
+    "max_width": 750.0,
+    "margin": 8.0
+  },
+  {
+    "name": "zpix-12-t030-l2-w750",
+    "font_path": "fonts/zpix.ttf",
+    "font_size": 12.0,
+    "threshold": 0.30,
+    "line_spacing": 2.0,
+    "max_width": 750.0,
+    "margin": 8.0
+  },
+  {
+    "name": "zpix-12-t030-l4-w750",
+    "font_path": "fonts/zpix.ttf",
+    "font_size": 12.0,
+    "threshold": 0.30,
+    "line_spacing": 4.0,
+    "max_width": 750.0,
+    "margin": 8.0
+  },
+  {
+    "name": "zpix-11-t030-l0-w750",
+    "font_path": "fonts/zpix.ttf",
+    "font_size": 11.0,
+    "threshold": 0.30,
+    "line_spacing": 0.0,
+    "max_width": 750.0,
+    "margin": 8.0
+  },
+  {
+    "name": "zpix-11-t030-l2-w750",
+    "font_path": "fonts/zpix.ttf",
+    "font_size": 11.0,
+    "threshold": 0.30,
+    "line_spacing": 2.0,
+    "max_width": 750.0,
+    "margin": 8.0
+  },
+  {
+    "name": "zpix-11-t030-l4-w750",
+    "font_path": "fonts/zpix.ttf",
+    "font_size": 11.0,
+    "threshold": 0.30,
+    "line_spacing": 4.0,
+    "max_width": 750.0,
+    "margin": 8.0
+  },
+  {
+    "name": "zpix-10-t030-l0-w750",
+    "font_path": "fonts/zpix.ttf",
+    "font_size": 10.0,
+    "threshold": 0.30,
+    "line_spacing": 0.0,
+    "max_width": 750.0,
+    "margin": 8.0
+  },
+  {
+    "name": "zpix-10-t030-l2-w750",
+    "font_path": "fonts/zpix.ttf",
+    "font_size": 10.0,
+    "threshold": 0.30,
+    "line_spacing": 2.0,
+    "max_width": 750.0,
+    "margin": 8.0
+  },
+  {
+    "name": "zpix-10-t030-l4-w750",
+    "font_path": "fonts/zpix.ttf",
+    "font_size": 10.0,
+    "threshold": 0.30,
+    "line_spacing": 4.0,
+    "max_width": 750.0,
+    "margin": 8.0
+  },
+  {
+    "name": "zpix-9-t030-l0-w750",
+    "font_path": "fonts/zpix.ttf",
+    "font_size": 9.0,
+    "threshold": 0.30,
+    "line_spacing": 0.0,
+    "max_width": 750.0,
+    "margin": 8.0
+  },
+  {
+    "name": "zpix-9-t030-l2-w750",
+    "font_path": "fonts/zpix.ttf",
+    "font_size": 9.0,
+    "threshold": 0.30,
+    "line_spacing": 2.0,
+    "max_width": 750.0,
+    "margin": 8.0
+  },
+  {
+    "name": "zpix-9-t030-l4-w750",
+    "font_path": "fonts/zpix.ttf",
+    "font_size": 9.0,
+    "threshold": 0.30,
+    "line_spacing": 4.0,
+    "max_width": 750.0,
+    "margin": 8.0
+  },
+  {
+    "name": "zpix-8-t030-l0-w750",
+    "font_path": "fonts/zpix.ttf",
+    "font_size": 8.0,
+    "threshold": 0.30,
+    "line_spacing": 0.0,
+    "max_width": 750.0,
+    "margin": 8.0
+  },
+  {
+    "name": "zpix-8-t030-l2-w750",
+    "font_path": "fonts/zpix.ttf",
+    "font_size": 8.0,
+    "threshold": 0.30,
+    "line_spacing": 2.0,
+    "max_width": 750.0,
+    "margin": 8.0
+  },
+  {
+    "name": "zpix-8-t030-l4-w750",
+    "font_path": "fonts/zpix.ttf",
+    "font_size": 8.0,
+    "threshold": 0.30,
+    "line_spacing": 4.0,
+    "max_width": 750.0,
+    "margin": 8.0
+  }
+]
