@@ -18,6 +18,8 @@ struct ExportMetadata {
     assistant_messages: usize,
     tool_results: usize,
     serialized_chars: usize,
+    eventized_chars: usize,
+    eventized_turns: usize,
     source_json_chars: usize,
     tokens_before: Option<u64>,
     compaction_timestamp: Option<String>,
@@ -58,6 +60,8 @@ pub fn run_export_session(args: &[String]) -> Result<(), Box<dyn Error>> {
     let window = &events[start_event_index..compaction_event_index];
     let compaction = &events[compaction_event_index].2;
     let mut serialized = String::new();
+    let mut eventized = String::new();
+    let mut eventized_turns = 0usize;
     let mut message_count = 0usize;
     let mut user_messages = 0usize;
     let mut assistant_messages = 0usize;
@@ -80,6 +84,11 @@ pub fn run_export_session(args: &[String]) -> Result<(), Box<dyn Error>> {
                     "# User",
                     &content_to_text(message.get("content")),
                 );
+                eventized_turns += push_dialogue_turn(
+                    &mut eventized,
+                    "U",
+                    &dialogue_content_to_text(message.get("content")),
+                );
             }
             Some("assistant") => {
                 assistant_messages += 1;
@@ -87,6 +96,11 @@ pub fn run_export_session(args: &[String]) -> Result<(), Box<dyn Error>> {
                     &mut serialized,
                     "# Assistant",
                     &assistant_content_to_text(message.get("content")),
+                );
+                eventized_turns += push_dialogue_turn(
+                    &mut eventized,
+                    "A",
+                    &assistant_dialogue_content_to_text(message.get("content")),
                 );
             }
             Some("toolResult") => {
@@ -106,7 +120,9 @@ pub fn run_export_session(args: &[String]) -> Result<(), Box<dyn Error>> {
 
     fs::create_dir_all(&out)?;
     let serialized = redact_public_fixture(&normalize_archive_text(&serialized));
+    let eventized = redact_public_fixture(&normalize_archive_text(&eventized));
     fs::write(out.join("serialized.txt"), serialized.as_bytes())?;
+    fs::write(out.join("eventized.txt"), eventized.as_bytes())?;
     let source_session = PathBuf::from(session)
         .file_name()
         .and_then(|name| name.to_str())
@@ -124,6 +140,8 @@ pub fn run_export_session(args: &[String]) -> Result<(), Box<dyn Error>> {
         assistant_messages,
         tool_results,
         serialized_chars: serialized.chars().count(),
+        eventized_chars: eventized.chars().count(),
+        eventized_turns,
         source_json_chars,
         tokens_before: compaction.get("tokensBefore").and_then(Value::as_u64),
         compaction_timestamp: compaction
@@ -329,6 +347,140 @@ fn assistant_content_to_text(content: Option<&Value>) -> String {
         .filter(|block| !block.trim().is_empty())
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+fn push_dialogue_turn(out: &mut String, speaker: &str, body: &str) -> usize {
+    let body = compact_dialogue_body(body);
+    if body.is_empty() {
+        return 0;
+    }
+    if !out.is_empty() {
+        out.push('\n');
+    }
+    out.push_str(speaker);
+    out.push_str(": ");
+    out.push_str(&body);
+    out.push('\n');
+    1
+}
+
+fn assistant_dialogue_content_to_text(content: Option<&Value>) -> String {
+    let Some(Value::Array(parts)) = content else {
+        return dialogue_text(&scalar_content_to_text(content));
+    };
+    parts
+        .iter()
+        .filter_map(|part| match part.get("type").and_then(Value::as_str) {
+            Some("text") => part.get("text").and_then(Value::as_str).map(dialogue_text),
+            _ => None,
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn dialogue_content_to_text(content: Option<&Value>) -> String {
+    let Some(Value::Array(parts)) = content else {
+        return dialogue_text(&scalar_content_to_text(content));
+    };
+    parts
+        .iter()
+        .filter_map(|part| match part.get("type").and_then(Value::as_str) {
+            Some("text") => part.get("text").and_then(Value::as_str).map(dialogue_text),
+            _ => None,
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn dialogue_text(text: &str) -> String {
+    strip_code_blocks(text)
+        .lines()
+        .filter_map(summarize_dialogue_line)
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn strip_code_blocks(text: &str) -> String {
+    let mut out = String::new();
+    let mut in_code = false;
+    let mut code_lines = 0usize;
+    let mut code_chars = 0usize;
+    for line in text.lines() {
+        if line.trim_start().starts_with("```") {
+            if in_code {
+                if code_chars > 0 {
+                    out.push_str(&format!(
+                        " [code omitted: {code_lines} lines, {code_chars} chars] "
+                    ));
+                }
+                in_code = false;
+                code_lines = 0;
+                code_chars = 0;
+            } else {
+                in_code = true;
+            }
+            continue;
+        }
+        if in_code {
+            code_lines += 1;
+            code_chars += line.chars().count();
+            continue;
+        }
+        out.push_str(line);
+        out.push('\n');
+    }
+    if in_code && code_chars > 0 {
+        out.push_str(&format!(
+            " [code omitted: {code_lines} lines, {code_chars} chars] "
+        ));
+    }
+    out
+}
+
+fn summarize_dialogue_line(line: &str) -> Option<String> {
+    let trimmed = line.trim();
+    if trimmed.is_empty()
+        || trimmed == "<out>"
+        || trimmed == "</out>"
+        || trimmed.starts_with("[shaken ")
+        || trimmed.starts_with("[raw output:")
+    {
+        return None;
+    }
+    if trimmed.len() > 500 && looks_machine_generated(trimmed) {
+        return Some(format!(
+            "[machine/code line omitted: {} chars]",
+            trimmed.chars().count()
+        ));
+    }
+    Some(trimmed.to_string())
+}
+
+fn compact_dialogue_body(body: &str) -> String {
+    let mut out = String::new();
+    let mut pending_space = false;
+    for c in body.chars() {
+        if c.is_whitespace() {
+            pending_space = true;
+            continue;
+        }
+        if pending_space && !out.is_empty() {
+            out.push(' ');
+        }
+        pending_space = false;
+        out.push(c);
+    }
+    out
+}
+
+fn looks_machine_generated(line: &str) -> bool {
+    line.starts_with('{')
+        || line.starts_with('[')
+        || line.contains("\\n")
+        || line.contains("\"type\":")
+        || line.contains("function ")
+        || line.contains("const ")
+        || line.contains("=>")
 }
 
 fn content_to_text(content: Option<&Value>) -> String {

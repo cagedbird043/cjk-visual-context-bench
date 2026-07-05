@@ -10,6 +10,8 @@
   "assistant_messages": 396,
   "tool_results": 435,
   "serialized_chars": 579346,
+  "eventized_chars": 59098,
+  "eventized_turns": 180,
   "source_json_chars": 3609987,
   "tokens_before": 200998,
   "compaction_timestamp": "2026-07-05T11:20:53.427Z",
