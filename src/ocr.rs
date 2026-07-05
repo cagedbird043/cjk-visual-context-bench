@@ -8,6 +8,12 @@ use std::{cmp, error::Error, fs, path::Path};
 
 #[derive(Debug, Serialize)]
 struct OcrMetrics {
+    strict: OcrScore,
+    normalized: OcrScore,
+}
+
+#[derive(Debug, Serialize)]
+struct OcrScore {
     source_chars: usize,
     output_chars: usize,
     edit_distance: usize,
@@ -44,26 +50,51 @@ pub async fn run_ocr(args: &[String]) -> Result<(), Box<dyn Error>> {
 }
 
 fn score_ocr(source: &str, output: &str) -> OcrMetrics {
-    let source_chars: Vec<char> = normalize_text(source).chars().collect();
-    let output_chars: Vec<char> = normalize_text(output).chars().collect();
+    OcrMetrics {
+        strict: score_chars(
+            &normalize_line_endings(source),
+            &normalize_line_endings(output),
+        ),
+        normalized: score_chars(&normalize_for_ocr(source), &normalize_for_ocr(output)),
+    }
+}
+
+fn score_chars(source: &str, output: &str) -> OcrScore {
+    let source_chars: Vec<char> = source.chars().collect();
+    let output_chars: Vec<char> = output.chars().collect();
     let edit_distance = levenshtein(&source_chars, &output_chars);
     let lcs_chars = lcs_len(&source_chars, &output_chars);
-    let cer = ratio(edit_distance, source_chars.len());
-    let char_recall = ratio(lcs_chars, source_chars.len());
-    let char_precision = ratio(lcs_chars, output_chars.len());
-    OcrMetrics {
+    OcrScore {
         source_chars: source_chars.len(),
         output_chars: output_chars.len(),
         edit_distance,
         lcs_chars,
-        cer,
-        char_recall,
-        char_precision,
+        cer: ratio(edit_distance, source_chars.len()),
+        char_recall: ratio(lcs_chars, source_chars.len()),
+        char_precision: ratio(lcs_chars, output_chars.len()),
     }
 }
 
-fn normalize_text(text: &str) -> String {
+fn normalize_line_endings(text: &str) -> String {
     text.replace("\r\n", "\n").trim().to_string()
+}
+
+fn normalize_for_ocr(text: &str) -> String {
+    normalize_line_endings(text)
+        .chars()
+        .filter_map(|c| match c {
+            '\n' | '\t' | ' ' => None,
+            '（' => Some('('),
+            '）' => Some(')'),
+            '，' => Some(','),
+            '。' => Some('.'),
+            '：' => Some(':'),
+            '“' | '”' => Some('"'),
+            '【' => Some('['),
+            '】' => Some(']'),
+            _ => Some(c),
+        })
+        .collect()
 }
 
 fn ratio(numerator: usize, denominator: usize) -> f64 {
