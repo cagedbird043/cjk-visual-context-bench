@@ -403,37 +403,22 @@ fn dialogue_text(text: &str) -> String {
 fn strip_code_blocks(text: &str) -> String {
     let mut out = String::new();
     let mut in_code = false;
-    let mut code_lines = 0usize;
-    let mut code_chars = 0usize;
     for line in text.lines() {
         if line.trim_start().starts_with("```") {
             if in_code {
-                if code_chars > 0 {
-                    out.push_str(&format!(
-                        " [code omitted: {code_lines} lines, {code_chars} chars] "
-                    ));
-                }
                 in_code = false;
-                code_lines = 0;
-                code_chars = 0;
             } else {
                 in_code = true;
             }
             continue;
         }
         if in_code {
-            code_lines += 1;
-            code_chars += line.chars().count();
             continue;
         }
         out.push_str(line);
         out.push('\n');
     }
-    if in_code && code_chars > 0 {
-        out.push_str(&format!(
-            " [code omitted: {code_lines} lines, {code_chars} chars] "
-        ));
-    }
+
     out
 }
 
@@ -448,10 +433,7 @@ fn summarize_dialogue_line(line: &str) -> Option<String> {
         return None;
     }
     if trimmed.len() > 500 && looks_machine_generated(trimmed) {
-        return Some(format!(
-            "[machine/code line omitted: {} chars]",
-            trimmed.chars().count()
-        ));
+        return None;
     }
     Some(trimmed.to_string())
 }
