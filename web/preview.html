@@ -76,11 +76,11 @@
     .stat b { display: block; font-size: 18px; color: var(--accent); }
     .stat span { color: var(--muted); font-size: 11px; }
     .error { color: var(--bad); white-space: pre-wrap; }
-    section { padding: 16px; overflow: auto; }
-    .frames { display: grid; gap: 18px; }
-    figure { margin: 0; border: 1px solid var(--line); background: white; overflow: auto; }
-    figcaption { position: sticky; top: 0; padding: 7px 9px; background: #11151c; color: var(--accent); border-bottom: 1px solid var(--line); }
-    img { display: block; max-width: none; image-rendering: pixelated; background: white; }
+    section { min-width: 0; padding: 16px; overflow: auto; }
+    .frames { display: grid; gap: 18px; max-width: 100%; }
+    figure { margin: 0; border: 1px solid var(--line); background: white; overflow: hidden; }
+    figcaption { padding: 7px 9px; background: #11151c; color: var(--accent); border-bottom: 1px solid var(--line); }
+    img { display: block; width: 100%; height: auto; image-rendering: pixelated; background: white; }
     .hint { color: var(--muted); font-size: 12px; margin-top: 10px; }
   </style>
 </head>
