@@ -228,7 +228,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "cjk-raster-playground"
+name = "cjk-visual-context-bench"
 version = "0.1.0"
 dependencies = [
  "ab_glyph",

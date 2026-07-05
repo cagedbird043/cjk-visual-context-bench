@@ -1,5 +1,6 @@
 /target
 /runs
+/output*.png
 /fonts/*
 !/fonts/.gitkeep
 !/fonts/fonts.lock.json

@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn print_help() {
-    println!("cjk-raster-playground");
+    println!("cjk-visual-context-bench");
     println!();
     println!("Commands:");
     println!("  cargo run -- render --text <input.txt> --out <output.png> [render knobs]");

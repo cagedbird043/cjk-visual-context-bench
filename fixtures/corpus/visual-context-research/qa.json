@@ -2,7 +2,7 @@
   {
     "id": "repo-name",
     "question": "实验仓库名称是什么？",
-    "golds": ["cjk-raster-playground"]
+    "golds": ["cjk-visual-context-bench"]
   },
   {
     "id": "default-model",
