@@ -1,0 +1,21 @@
+{
+  "id": "exact-formatting",
+  "purpose": "Measure whether image-internal exact-value formatting reduces glyph ambiguity without external anchors.",
+  "formats": [
+    "plain",
+    "label",
+    "bracket",
+    "quote",
+    "segmented",
+    "spaced"
+  ],
+  "values": {
+    "candidate": "zpix-12-t030-l0-w750",
+    "balanced": "zpix-14-t030-l0-w1024",
+    "model": "google-antigravity/gemini-3.5-flash",
+    "phrase": "低帧数占用",
+    "path": "packages/coding-agent/src/config/model-registry.ts",
+    "sha256": "ed39f02845e8c0b8cdba275432250fb03e8528826f058bc151753bd62b44b744"
+  },
+  "scoring": "exact trim-only EM; any character mismatch fails"
+}

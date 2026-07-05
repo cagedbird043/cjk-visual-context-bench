@@ -1,0 +1,1 @@
+格式保护实验 bracket。[candidate_id] zpix-12-t030-l0-w750 [/candidate_id]。[balanced_id] zpix-14-t030-l0-w1024 [/balanced_id]。[model_id] google-antigravity/gemini-3.5-flash [/model_id]。[exact_phrase] 低帧数占用 [/exact_phrase]。[file_path] packages/coding-agent/src/config/model-registry.ts [/file_path]。[sha256] ed39f02845e8c0b8cdba275432250fb03e8528826f058bc151753bd62b44b744 [/sha256]。
