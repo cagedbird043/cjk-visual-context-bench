@@ -435,7 +435,73 @@ fn summarize_dialogue_line(line: &str) -> Option<String> {
     if trimmed.len() > 500 && looks_machine_generated(trimmed) {
         return None;
     }
-    Some(trimmed.to_string())
+    Some(strip_markdown_inline(&strip_markdown_prefix(trimmed)))
+}
+
+fn strip_markdown_prefix(line: &str) -> String {
+    let mut text = line.trim_start();
+    while let Some(rest) = text.strip_prefix('#') {
+        text = rest.trim_start();
+    }
+    if let Some(rest) = text.strip_prefix('>') {
+        text = rest.trim_start();
+    }
+    for marker in ["- ", "* ", "+ "] {
+        if let Some(rest) = text.strip_prefix(marker) {
+            return rest.trim_start().to_string();
+        }
+    }
+    let bytes = text.as_bytes();
+    if bytes.len() > 2 && bytes[0].is_ascii_digit() {
+        if let Some(dot_index) = text.find('.') {
+            if text[..dot_index].bytes().all(|byte| byte.is_ascii_digit()) {
+                return text[dot_index + 1..].trim_start().to_string();
+            }
+        }
+    }
+    text.to_string()
+}
+
+fn strip_markdown_inline(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
+    while let Some(ch) = chars.next() {
+        match ch {
+            '*' | '`' => {}
+            '[' => {
+                let mut label = String::new();
+                let mut found_close = false;
+                while let Some(next) = chars.next() {
+                    if next == ']' {
+                        found_close = true;
+                        break;
+                    }
+                    label.push(next);
+                }
+                if found_close && chars.peek() == Some(&'(') {
+                    chars.next();
+                    let mut url = String::new();
+                    for next in chars.by_ref() {
+                        if next == ')' {
+                            break;
+                        }
+                        url.push(next);
+                    }
+                    out.push_str(&label);
+                    if !url.is_empty() {
+                        out.push(' ');
+                        out.push_str(&url);
+                    }
+                } else {
+                    out.push('[');
+                    out.push_str(&label);
+                }
+            }
+            '|' => out.push(' '),
+            _ => out.push(ch),
+        }
+    }
+    out
 }
 
 fn compact_dialogue_body(body: &str) -> String {
