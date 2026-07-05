@@ -1,7 +1,7 @@
 use image::{GrayImage, Luma};
 use rusttype::{Font, Scale, point};
 use serde::{Deserialize, Serialize};
-use std::{error::Error, fs};
+use std::{error::Error, fs, path::Path};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RenderVariant {
@@ -25,7 +25,7 @@ pub struct RenderedImage {
 pub fn run_render(args: &[String]) -> Result<(), Box<dyn Error>> {
     let text_path = required_arg(args, "--text")?;
     let output = required_arg(args, "--out")?;
-    let text = fs::read_to_string(text_path)?;
+    let text = compact_text(&fs::read_to_string(text_path)?);
     let variant = RenderVariant {
         name: "manual".to_string(),
         font_path: arg_value(args, "--font")
@@ -98,6 +98,12 @@ pub fn render_text(
         }
     }
 
+    if let Some(parent) = Path::new(output).parent() {
+        if !parent.as_os_str().is_empty() {
+            fs::create_dir_all(parent)?;
+        }
+    }
+
     image.save(output)?;
     Ok(RenderedImage {
         width: img_width,
@@ -111,6 +117,30 @@ pub fn default_font_path() -> String {
 
 pub fn default_margin() -> f32 {
     15.0
+}
+
+fn compact_text(text: &str) -> String {
+    let mut out = String::new();
+    let mut pending_space = false;
+    for line in text.lines() {
+        let trimmed = line.trim().trim_start_matches('#').trim_start();
+        if trimmed.is_empty() {
+            continue;
+        }
+        for c in trimmed.chars() {
+            if c.is_whitespace() {
+                pending_space = true;
+                continue;
+            }
+            if pending_space && !out.is_empty() {
+                out.push(' ');
+            }
+            pending_space = false;
+            out.push(c);
+        }
+        pending_space = true;
+    }
+    out
 }
 
 fn required_arg<'a>(args: &'a [String], key: &str) -> Result<&'a str, Box<dyn Error>> {
