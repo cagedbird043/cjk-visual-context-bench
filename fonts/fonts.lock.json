@@ -1,0 +1,45 @@
+[
+  {
+    "id": "zpix",
+    "source": "https://github.com/SolidZORO/zpix-pixel-font",
+    "version": "v3.1.11",
+    "license": "MIT",
+    "kind": "direct",
+    "url": "https://github.com/SolidZORO/zpix-pixel-font/releases/download/v3.1.11/zpix.ttf",
+    "sha256": "ed39f02845e8c0b8cdba275432250fb03e8528826f058bc151753bd62b44b744",
+    "path": "fonts/zpix.ttf"
+  },
+  {
+    "id": "fusion-pixel-8px-monospaced-zh-hans",
+    "source": "https://github.com/TakWolf/fusion-pixel-font",
+    "version": "2026.07.01",
+    "license": "OFL-1.1",
+    "kind": "zip-member",
+    "url": "https://github.com/TakWolf/fusion-pixel-font/releases/download/2026.07.01/fusion-pixel-font-8px-monospaced-otf-v2026.07.01.zip",
+    "sha256": "f886c9859419962da0b4abaa48c734da98d5ad99eac43f775c44673bab49773a",
+    "member": "fusion-pixel-8px-monospaced-zh_hans.otf",
+    "path": "fonts/fusion-pixel-8px-monospaced-zh_hans.otf"
+  },
+  {
+    "id": "fusion-pixel-10px-monospaced-zh-hans",
+    "source": "https://github.com/TakWolf/fusion-pixel-font",
+    "version": "2026.07.01",
+    "license": "OFL-1.1",
+    "kind": "zip-member",
+    "url": "https://github.com/TakWolf/fusion-pixel-font/releases/download/2026.07.01/fusion-pixel-font-10px-monospaced-otf-v2026.07.01.zip",
+    "sha256": "44b59c230f6872ed64924745928cb5219400af82a042da5be66438763f029d40",
+    "member": "fusion-pixel-10px-monospaced-zh_hans.otf",
+    "path": "fonts/fusion-pixel-10px-monospaced-zh_hans.otf"
+  },
+  {
+    "id": "fusion-pixel-12px-monospaced-zh-hans",
+    "source": "https://github.com/TakWolf/fusion-pixel-font",
+    "version": "2026.07.01",
+    "license": "OFL-1.1",
+    "kind": "zip-member",
+    "url": "https://github.com/TakWolf/fusion-pixel-font/releases/download/2026.07.01/fusion-pixel-font-12px-monospaced-otf-v2026.07.01.zip",
+    "sha256": "f0f23f0d26cefd24c94457f9bc7df03bae6401df4ffe3b685b8410d38e75f336",
+    "member": "fusion-pixel-12px-monospaced-zh_hans.otf",
+    "path": "fonts/fusion-pixel-12px-monospaced-zh_hans.otf"
+  }
+]

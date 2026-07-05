@@ -3,7 +3,7 @@ set -euo pipefail
 
 TEXT_PATH=${TEXT_PATH:-fixtures/demo.txt}
 IMAGE_PATH=${IMAGE_PATH:-output_long.png}
-FONT_PATH=${FONT_PATH:-zpix.ttf}
+FONT_PATH=${FONT_PATH:-fonts/zpix.ttf}
 FONT_SIZE=${FONT_SIZE:-12}
 THRESHOLD=${THRESHOLD:-0.30}
 LINE_SPACING=${LINE_SPACING:-6}

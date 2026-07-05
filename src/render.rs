@@ -1,5 +1,5 @@
 use image::{GrayImage, Luma};
-use rusttype::{Font, Scale, point};
+use rusttype::{point, Font, Scale};
 use serde::{Deserialize, Serialize};
 use std::{error::Error, fs};
 
@@ -28,7 +28,9 @@ pub fn run_render(args: &[String]) -> Result<(), Box<dyn Error>> {
     let text = fs::read_to_string(text_path)?;
     let variant = RenderVariant {
         name: "manual".to_string(),
-        font_path: arg_value(args, "--font").unwrap_or("zpix.ttf").to_string(),
+        font_path: arg_value(args, "--font")
+            .unwrap_or("fonts/zpix.ttf")
+            .to_string(),
         font_size: parse_arg(args, "--font-size", 12.0)?,
         threshold: parse_arg(args, "--threshold", 0.3)?,
         line_spacing: parse_arg(args, "--line-spacing", 6.0)?,
@@ -104,7 +106,7 @@ pub fn render_text(
 }
 
 pub fn default_font_path() -> String {
-    "zpix.ttf".to_string()
+    "fonts/zpix.ttf".to_string()
 }
 
 pub fn default_margin() -> f32 {
