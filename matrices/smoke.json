@@ -1,0 +1,11 @@
+[
+  {
+    "name": "zpix-12-t030-l6-w750",
+    "font_path": "zpix.ttf",
+    "font_size": 12.0,
+    "threshold": 0.30,
+    "line_spacing": 6.0,
+    "max_width": 750.0,
+    "margin": 15.0
+  }
+]
