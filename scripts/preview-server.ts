@@ -4,7 +4,8 @@ import { $ } from "bun";
 import * as path from "node:path";
 
 const root = path.resolve(import.meta.dir, "..");
-const bin = path.join(root, "target/debug/cjk-visual-context-bench");
+const profile = Bun.env.PREVIEW_PROFILE === "debug" ? "debug" : "release";
+const bin = path.join(root, `target/${profile}/cjk-visual-context-bench`);
 const defaultText = "fixtures/archives/omp-snapcompact-cjk-window-029/eventized.txt";
 const port = Number(Bun.env.PORT ?? "8787");
 
@@ -36,7 +37,11 @@ function variantName(request: Required<RenderRequest>): string {
 }
 
 async function ensureBinary() {
-  await $`cargo build`.cwd(root).quiet();
+  if (profile === "release") {
+    await $`cargo build --release`.cwd(root).quiet();
+  } else {
+    await $`cargo build`.cwd(root).quiet();
+  }
 }
 
 function safeRelative(input: string): string {

@@ -116,6 +116,12 @@ Use the local preview UI to tune raster parameters by eye before running model Q
 bun scripts/preview-server.ts
 ```
 
+Default preview mode builds and uses the release renderer. First run may take longer; slider renders should be fast afterward. Force debug mode only when debugging:
+
+```sh
+PREVIEW_PROFILE=debug bun scripts/preview-server.ts
+```
+
 Open:
 
 ```text
