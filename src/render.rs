@@ -1,5 +1,5 @@
 use image::{GrayImage, Luma};
-use rusttype::{point, Font, Scale};
+use rusttype::{Font, Scale, point};
 use serde::{Deserialize, Serialize};
 use std::{error::Error, fs};
 

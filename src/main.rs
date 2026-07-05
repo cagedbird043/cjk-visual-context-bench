@@ -3,6 +3,7 @@ mod eval;
 mod matrix;
 mod ocr;
 mod probes;
+mod qa;
 mod render;
 
 use std::{env, error::Error};
@@ -14,13 +15,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Some("render") => render::run_render(&args[1..]),
         Some("eval") => eval::run_eval(&args[1..]).await,
         Some("ocr") => ocr::run_ocr(&args[1..]).await,
+        Some("qa") => qa::run_qa(&args[1..]).await,
         Some("matrix") => matrix::run_matrix(&args[1..]).await,
         Some("help") | Some("--help") | Some("-h") | None => {
             print_help();
             Ok(())
         }
         Some(other) => Err(format!(
-            "unknown command `{other}`; use `render`, `eval`, `ocr`, or `matrix`"
+            "unknown command `{other}`; use `render`, `eval`, `ocr`, `qa`, or `matrix`"
         )
         .into()),
     }
@@ -35,6 +37,7 @@ fn print_help() {
     println!(
         "  cargo run -- ocr --image <image.png> --source <source.txt> --prompt <prompt.txt> --out <transcript.txt> --max-tokens <n>"
     );
+    println!("  cargo run -- qa --image <image.png> --qa <qa.json> --out <results.jsonl>");
     println!(
         "  cargo run -- matrix --text <input.txt> --matrix <variants.json> --probes <probes.json> --out <run-dir>"
     );

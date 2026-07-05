@@ -1,0 +1,17 @@
+[
+  {
+    "id": "no-issue-number",
+    "question": "本文给出的 GitHub issue 编号是多少？",
+    "golds": ["不可确定"]
+  },
+  {
+    "id": "no-api-key",
+    "question": "本文给出的真实 API key 是什么？",
+    "golds": ["不可确定"]
+  },
+  {
+    "id": "no-final-prod-param",
+    "question": "最终生产参数是什么？",
+    "golds": ["不可确定"]
+  }
+]
