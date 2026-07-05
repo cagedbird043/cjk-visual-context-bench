@@ -11,6 +11,8 @@ struct QaItem {
     id: String,
     question: String,
     golds: Vec<String>,
+    #[serde(default = "default_score")]
+    score: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -18,6 +20,7 @@ struct QaResult {
     id: String,
     answer: String,
     exact_match: bool,
+    score: String,
     f1: f64,
     best_gold: String,
 }
@@ -71,14 +74,27 @@ pub async fn run_qa(args: &[String]) -> Result<(), Box<dyn Error>> {
 fn score_item(item: &QaItem, answer: String) -> QaResult {
     let mut best_f1 = 0.0;
     let mut best_gold = String::new();
-    let answer_norm = normalize_answer(&answer);
+    let exact_mode = item.score == "exact";
+    let answer_norm = if exact_mode {
+        normalize_exact(&answer)
+    } else {
+        normalize_answer(&answer)
+    };
     let mut exact_match = false;
     for gold in &item.golds {
-        let gold_norm = normalize_answer(gold);
+        let gold_norm = if exact_mode {
+            normalize_exact(gold)
+        } else {
+            normalize_answer(gold)
+        };
         if answer_norm == gold_norm {
             exact_match = true;
         }
-        let f1 = char_f1(&answer_norm, &gold_norm);
+        let f1 = if exact_mode {
+            char_f1(&answer_norm, &gold_norm)
+        } else {
+            char_f1(&answer_norm, &gold_norm)
+        };
         if f1 > best_f1 {
             best_f1 = f1;
             best_gold = gold.clone();
@@ -87,10 +103,19 @@ fn score_item(item: &QaItem, answer: String) -> QaResult {
     QaResult {
         id: item.id.clone(),
         answer,
+        score: item.score.clone(),
         exact_match,
         f1: best_f1,
         best_gold,
     }
+}
+
+fn default_score() -> String {
+    "semantic".to_string()
+}
+
+fn normalize_exact(text: &str) -> String {
+    text.trim().to_string()
 }
 
 fn normalize_answer(text: &str) -> String {
