@@ -20,6 +20,7 @@ struct ExportMetadata {
     serialized_chars: usize,
     eventized_chars: usize,
     eventized_turns: usize,
+    structured_chars: usize,
     source_json_chars: usize,
     tokens_before: Option<u64>,
     compaction_timestamp: Option<String>,
@@ -62,6 +63,7 @@ pub fn run_export_session(args: &[String]) -> Result<(), Box<dyn Error>> {
     let mut serialized = String::new();
     let mut eventized = String::new();
     let mut eventized_turns = 0usize;
+    let mut structured = String::new();
     let mut message_count = 0usize;
     let mut user_messages = 0usize;
     let mut assistant_messages = 0usize;
@@ -89,6 +91,12 @@ pub fn run_export_session(args: &[String]) -> Result<(), Box<dyn Error>> {
                     "U",
                     &dialogue_content_to_text(message.get("content")),
                 );
+                push_structured_turn(
+                    &mut structured,
+                    eventized_turns,
+                    "U",
+                    &dialogue_content_to_text(message.get("content")),
+                );
             }
             Some("assistant") => {
                 assistant_messages += 1;
@@ -99,6 +107,12 @@ pub fn run_export_session(args: &[String]) -> Result<(), Box<dyn Error>> {
                 );
                 eventized_turns += push_dialogue_turn(
                     &mut eventized,
+                    "A",
+                    &assistant_dialogue_content_to_text(message.get("content")),
+                );
+                push_structured_turn(
+                    &mut structured,
+                    eventized_turns,
                     "A",
                     &assistant_dialogue_content_to_text(message.get("content")),
                 );
@@ -121,8 +135,10 @@ pub fn run_export_session(args: &[String]) -> Result<(), Box<dyn Error>> {
     fs::create_dir_all(&out)?;
     let serialized = redact_public_fixture(&normalize_archive_text(&serialized));
     let eventized = redact_public_fixture(&normalize_archive_text(&eventized));
+    let structured = redact_public_fixture(&normalize_archive_text(&structured));
     fs::write(out.join("serialized.txt"), serialized.as_bytes())?;
     fs::write(out.join("eventized.txt"), eventized.as_bytes())?;
+    fs::write(out.join("eventized_structured.txt"), structured.as_bytes())?;
     let source_session = PathBuf::from(session)
         .file_name()
         .and_then(|name| name.to_str())
@@ -142,6 +158,7 @@ pub fn run_export_session(args: &[String]) -> Result<(), Box<dyn Error>> {
         serialized_chars: serialized.chars().count(),
         eventized_chars: eventized.chars().count(),
         eventized_turns,
+        structured_chars: structured.chars().count(),
         source_json_chars,
         tokens_before: compaction.get("tokensBefore").and_then(Value::as_u64),
         compaction_timestamp: compaction
@@ -362,6 +379,17 @@ fn push_dialogue_turn(out: &mut String, speaker: &str, body: &str) -> usize {
     out.push_str(&body);
     out.push('\n');
     1
+}
+
+fn push_structured_turn(out: &mut String, turn: usize, speaker: &str, body: &str) {
+    let body = compact_dialogue_body(body);
+    if body.is_empty() {
+        return;
+    }
+    if out.is_empty() {
+        out.push_str("ARCHIVE EVENT STREAM\n");
+    }
+    out.push_str(&format!("｜ T{turn:03} {speaker}: {body}\n"));
 }
 
 fn assistant_dialogue_content_to_text(content: Option<&Value>) -> String {

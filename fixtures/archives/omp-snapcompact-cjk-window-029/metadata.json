@@ -12,6 +12,7 @@
   "serialized_chars": 579346,
   "eventized_chars": 35639,
   "eventized_turns": 180,
+  "structured_chars": 36741,
   "source_json_chars": 3609987,
   "tokens_before": 200998,
   "compaction_timestamp": "2026-07-05T11:20:53.427Z",
