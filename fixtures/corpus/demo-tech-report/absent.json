@@ -1,0 +1,12 @@
+[
+  {
+    "id": "no-version",
+    "question": "What software version number is shown in the image?",
+    "expected": "not present"
+  },
+  {
+    "id": "no-sha",
+    "question": "What Git commit SHA is shown in the image?",
+    "expected": "not present"
+  }
+]

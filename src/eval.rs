@@ -30,7 +30,7 @@ pub async fn evaluate_image(
 ) -> Result<Vec<ProbeResult>, Box<dyn Error>> {
     let mut results = Vec::with_capacity(probes.len());
     for probe in probes {
-        let answer = ask_image(client, config, image_url, &probe.question).await?;
+        let answer = complete_image(client, config, image_url, &probe.question, 160).await?;
         results.push(score_answer(probe, answer));
     }
     Ok(results)
@@ -45,11 +45,12 @@ pub fn image_data_url(path: &str) -> Result<String, Box<dyn Error>> {
     Ok(format!("data:{mime};base64,{}", BASE64.encode(bytes)))
 }
 
-async fn ask_image(
+pub async fn complete_image(
     client: &Client,
     config: &EvalConfig,
     image_url: &str,
     question: &str,
+    max_tokens: u32,
 ) -> Result<String, Box<dyn Error>> {
     let url = format!("{}/chat/completions", config.base_url.trim_end_matches('/'));
     let body = json!({
@@ -61,7 +62,7 @@ async fn ask_image(
                 { "type": "image_url", "image_url": { "url": image_url } }
             ]
         }],
-        "max_tokens": 160,
+        "max_tokens": max_tokens,
         "stream": false
     });
 

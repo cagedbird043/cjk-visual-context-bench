@@ -1,0 +1,8 @@
+Transcribe all visible text in the image exactly.
+
+Rules:
+- Return only the transcription.
+- Do not summarize.
+- Preserve Chinese characters, English text, numbers, punctuation, brackets, and symbols.
+- Preserve line breaks where they are visible.
+- If a character is unclear, use the closest visible character instead of explaining.

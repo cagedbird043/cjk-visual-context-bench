@@ -1,0 +1,22 @@
+[
+  {
+    "id": "title",
+    "text": "技术报告：多模态光学上下文压缩",
+    "kind": "title"
+  },
+  {
+    "id": "threshold",
+    "text": "coverage v > 0.3",
+    "kind": "threshold"
+  },
+  {
+    "id": "density-path",
+    "text": "高语义密度、低帧数占用",
+    "kind": "bracketed-phrase"
+  },
+  {
+    "id": "canvas",
+    "text": "白底黑字（Black Ink on White Canvas）",
+    "kind": "conclusion"
+  }
+]

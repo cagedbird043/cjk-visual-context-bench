@@ -1,6 +1,7 @@
 mod config;
 mod eval;
 mod matrix;
+mod ocr;
 mod probes;
 mod render;
 
@@ -12,14 +13,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
     match args.first().map(String::as_str) {
         Some("render") => render::run_render(&args[1..]),
         Some("eval") => eval::run_eval(&args[1..]).await,
+        Some("ocr") => ocr::run_ocr(&args[1..]).await,
         Some("matrix") => matrix::run_matrix(&args[1..]).await,
         Some("help") | Some("--help") | Some("-h") | None => {
             print_help();
             Ok(())
         }
-        Some(other) => {
-            Err(format!("unknown command `{other}`; use `render`, `eval`, or `matrix`").into())
-        }
+        Some(other) => Err(format!(
+            "unknown command `{other}`; use `render`, `eval`, `ocr`, or `matrix`"
+        )
+        .into()),
     }
 }
 
@@ -29,6 +32,9 @@ fn print_help() {
     println!("Commands:");
     println!("  cargo run -- render --text <input.txt> --out <output.png> [render knobs]");
     println!("  cargo run -- eval --image <image.png> --probes <probes.json>");
+    println!(
+        "  cargo run -- ocr --image <image.png> --source <source.txt> --prompt <prompt.txt> --out <transcript.txt> --max-tokens <n>"
+    );
     println!(
         "  cargo run -- matrix --text <input.txt> --matrix <variants.json> --probes <probes.json> --out <run-dir>"
     );
