@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CJK Visual Context Preview</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0c0f;
+      --panel: #15171d;
+      --ink: #f3f0e8;
+      --muted: #9aa0aa;
+      --accent: #e7ff6f;
+      --line: #2a2e39;
+      --bad: #ff806f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 14px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      padding: 14px 18px;
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(10px);
+    }
+    h1 { margin: 0; font-size: 16px; letter-spacing: .02em; }
+    .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    main { display: grid; grid-template-columns: 360px 1fr; min-height: calc(100vh - 62px); }
+    aside {
+      border-right: 1px solid var(--line);
+      background: var(--panel);
+      padding: 16px;
+      overflow: auto;
+    }
+    .grid { display: grid; gap: 14px; }
+    label { display: grid; gap: 6px; color: var(--muted); }
+    .row { display: grid; grid-template-columns: 1fr 72px; gap: 10px; align-items: center; }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+    input[type="number"], input[type="text"] {
+      width: 100%;
+      padding: 7px 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #0e1015;
+      color: var(--ink);
+      font: inherit;
+    }
+    button {
+      padding: 10px 12px;
+      border: 1px solid #556000;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #151700;
+      font: 700 13px/1 ui-monospace, monospace;
+      cursor: pointer;
+    }
+    button:disabled { opacity: .55; cursor: progress; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      padding-top: 8px;
+    }
+    .stat { padding: 9px; border: 1px solid var(--line); border-radius: 8px; background: #101218; }
+    .stat b { display: block; font-size: 18px; color: var(--accent); }
+    .stat span { color: var(--muted); font-size: 11px; }
+    .error { color: var(--bad); white-space: pre-wrap; }
+    section { padding: 16px; overflow: auto; }
+    .frames { display: grid; gap: 18px; }
+    figure { margin: 0; border: 1px solid var(--line); background: white; overflow: auto; }
+    figcaption { position: sticky; top: 0; padding: 7px 9px; background: #11151c; color: var(--accent); border-bottom: 1px solid var(--line); }
+    img { display: block; max-width: none; image-rendering: pixelated; background: white; }
+    .hint { color: var(--muted); font-size: 12px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>CJK bitmap sharpness bench</h1>
+      <div class="sub">Tune zpix raster params. Backend renders real eventized OMP archive.</div>
+    </div>
+    <div id="status" class="sub">idle</div>
+  </header>
+  <main>
+    <aside>
+      <div class="grid">
+        <label>font size
+          <div class="row"><input id="fontSize" type="range" min="10" max="24" step="1" value="18"><input id="fontSizeN" type="number" value="18"></div>
+        </label>
+        <label>threshold
+          <div class="row"><input id="threshold" type="range" min="0.30" max="0.75" step="0.01" value="0.58"><input id="thresholdN" type="number" value="0.58" step="0.01"></div>
+        </label>
+        <label>line spacing
+          <div class="row"><input id="lineSpacing" type="range" min="0" max="8" step="1" value="2"><input id="lineSpacingN" type="number" value="2"></div>
+        </label>
+        <label>frame size
+          <div class="row"><input id="frameSize" type="range" min="1200" max="2200" step="50" value="2000"><input id="frameSizeN" type="number" value="2000"></div>
+        </label>
+        <label>content width
+          <div class="row"><input id="contentWidth" type="range" min="1000" max="2200" step="50" value="2000"><input id="contentWidthN" type="number" value="2000"></div>
+        </label>
+        <label>content height
+          <div class="row"><input id="contentHeight" type="range" min="1000" max="2200" step="50" value="2000"><input id="contentHeightN" type="number" value="2000"></div>
+        </label>
+        <label>margin
+          <div class="row"><input id="margin" type="range" min="0" max="80" step="1" value="8"><input id="marginN" type="number" value="8"></div>
+        </label>
+        <label>source text
+          <input id="text" type="text" value="fixtures/archives/omp-snapcompact-cjk-window-029/eventized.txt">
+        </label>
+        <button id="render">Render now</button>
+        <div class="stats">
+          <div class="stat"><b id="frames">—</b><span>frames</span></div>
+          <div class="stat"><b id="chars">—</b><span>chars</span></div>
+          <div class="stat"><b id="cpf">—</b><span>chars/frame</span></div>
+          <div class="stat"><b id="variant">—</b><span>variant</span></div>
+        </div>
+        <div class="hint">Auto-renders after slider stop. Formal benchmark still uses QA runner.</div>
+        <div id="error" class="error"></div>
+      </div>
+    </aside>
+    <section>
+      <div id="framesWrap" class="frames"></div>
+    </section>
+  </main>
+  <script>
+    const ids = ['fontSize', 'threshold', 'lineSpacing', 'frameSize', 'contentWidth', 'contentHeight', 'margin'];
+    const status = document.getElementById('status');
+    const error = document.getElementById('error');
+    const framesWrap = document.getElementById('framesWrap');
+    let timer = null;
+    let inflight = null;
+
+    for (const id of ids) {
+      const range = document.getElementById(id);
+      const number = document.getElementById(id + 'N');
+      range.addEventListener('input', () => { number.value = range.value; schedule(); });
+      number.addEventListener('input', () => { range.value = number.value; schedule(); });
+    }
+    document.getElementById('text').addEventListener('change', schedule);
+    document.getElementById('render').addEventListener('click', render);
+
+    function payload() {
+      return {
+        fontSize: Number(document.getElementById('fontSize').value),
+        threshold: Number(document.getElementById('threshold').value),
+        lineSpacing: Number(document.getElementById('lineSpacing').value),
+        frameSize: Number(document.getElementById('frameSize').value),
+        contentWidth: Number(document.getElementById('contentWidth').value),
+        contentHeight: Number(document.getElementById('contentHeight').value),
+        margin: Number(document.getElementById('margin').value),
+        text: document.getElementById('text').value,
+      };
+    }
+
+    function schedule() {
+      clearTimeout(timer);
+      timer = setTimeout(render, 450);
+    }
+
+    async function render() {
+      if (inflight) inflight.abort();
+      inflight = new AbortController();
+      document.getElementById('render').disabled = true;
+      status.textContent = 'rendering';
+      error.textContent = '';
+      try {
+        const response = await fetch('/api/render', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload()),
+          signal: inflight.signal,
+        });
+        const data = await response.json();
+        if (!response.ok || data.error) throw new Error(data.error || response.statusText);
+        document.getElementById('frames').textContent = data.manifest.frame_count;
+        document.getElementById('chars').textContent = data.manifest.compact_chars;
+        document.getElementById('cpf').textContent = data.manifest.chars_per_frame.toFixed(0);
+        document.getElementById('variant').textContent = data.name;
+        framesWrap.innerHTML = '';
+        data.frames.forEach((src, index) => {
+          const figure = document.createElement('figure');
+          const caption = document.createElement('figcaption');
+          caption.textContent = `frame ${String(index).padStart(4, '0')}`;
+          const image = document.createElement('img');
+          image.src = src;
+          image.width = data.request.frameSize;
+          image.height = data.request.frameSize;
+          figure.append(caption, image);
+          framesWrap.append(figure);
+        });
+        status.textContent = 'done';
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          error.textContent = err.message;
+          status.textContent = 'error';
+        }
+      } finally {
+        document.getElementById('render').disabled = false;
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>

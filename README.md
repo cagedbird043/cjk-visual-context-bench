@@ -108,6 +108,44 @@ export OPENAI_API_KEY=...
 export OPENAI_MODEL=google-antigravity/gemini-3.5-flash
 ```
 
+## Visual preview
+
+Use the local preview UI to tune raster parameters by eye before running model QA:
+
+```sh
+bun scripts/preview-server.ts
+```
+
+Open:
+
+```text
+http://127.0.0.1:8787
+```
+
+Controls:
+
+```text
+font size
+threshold
+line spacing
+frame size
+content width / height
+margin
+source text
+```
+
+The UI renders with the same Rust renderer used by benchmark commands. Outputs go under:
+
+```text
+runs/preview/
+```
+
+Smoke check:
+
+```sh
+bun scripts/preview-server.ts --smoke
+```
+
 ## Repository layout
 
 ```text
