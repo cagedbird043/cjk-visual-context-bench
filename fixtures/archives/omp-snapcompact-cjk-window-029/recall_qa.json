@@ -1,0 +1,74 @@
+[
+  {
+    "id": "quota-refresh-object",
+    "score": "semantic",
+    "question": "用户说四个账号可能定时刷新什么？",
+    "golds": ["额度"]
+  },
+  {
+    "id": "cache-optimal-rotation",
+    "score": "exact",
+    "question": "为了最大化缓存利用率，用户认为最原始的轮转顺序是什么？",
+    "golds": ["A-B-C-D-A"]
+  },
+  {
+    "id": "fallback-final-decision",
+    "score": "semantic",
+    "question": "关于账号 fallback 机制，最后决定改还是不改？",
+    "golds": ["不改"]
+  },
+  {
+    "id": "plan-storage-uri",
+    "score": "exact",
+    "question": "最初要求维护方案的 local URI 是什么？",
+    "golds": ["local://cjk-visual-context-plan.md"]
+  },
+  {
+    "id": "prototype-path",
+    "score": "exact",
+    "question": "已有原型源码路径是什么？",
+    "golds": ["~/Projects/CagedBird-Ecosystem/tools/cjk-raster-playground/"]
+  },
+  {
+    "id": "no-vllm-reason",
+    "score": "semantic",
+    "question": "为什么不需要单独找 vLLM？",
+    "golds": ["OMP 支持中转自身可用模型", "OMP自己能当凭证中转和模型代理"]
+  },
+  {
+    "id": "gateway-model",
+    "score": "exact",
+    "question": "当时计划通过 OMP 中转出去的模型是什么？",
+    "golds": ["gemini 3.5 flash"]
+  },
+  {
+    "id": "exact-value-correction",
+    "score": "semantic",
+    "question": "用户后来纠正 exact values 应该怎么处理？",
+    "golds": ["必须能从图片里恢复，anchor 不能当逃避", "图片不能完整还原精确值信息，这项技术就没有意义"]
+  },
+  {
+    "id": "font-size-correction",
+    "score": "semantic",
+    "question": "用户为什么说字体可以更大？",
+    "golds": ["已经通过去除格式压缩了很多", "去除格式已经压缩了很多空间"]
+  },
+  {
+    "id": "public-research-style",
+    "score": "semantic",
+    "question": "用户说公开研究不是写什么，而是直接做什么？",
+    "golds": ["不写论文，直接做实验，公开数据", "写论文，直接做实验", "直接做实验，公开数据"]
+  },
+  {
+    "id": "absent-production-integration",
+    "score": "exact",
+    "question": "这段归档是否说明已经把新渲染器集成进 OMP 生产？如果没有，回答 不可确定。",
+    "golds": ["不可确定"]
+  },
+  {
+    "id": "absent-recall-proof",
+    "score": "exact",
+    "question": "这段归档是否已经证明 zpix12 image recall QA 通过？如果没有，回答 不可确定。",
+    "golds": ["不可确定"]
+  }
+]

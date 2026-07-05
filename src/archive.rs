@@ -432,10 +432,11 @@ fn summarize_dialogue_line(line: &str) -> Option<String> {
     {
         return None;
     }
-    if trimmed.len() > 500 && looks_machine_generated(trimmed) {
+    let cleaned = strip_markdown_inline(&strip_markdown_prefix(trimmed));
+    if cleaned.len() > 500 && looks_machine_generated(&cleaned) {
         return None;
     }
-    Some(strip_markdown_inline(&strip_markdown_prefix(trimmed)))
+    Some(cleaned)
 }
 
 fn strip_markdown_prefix(line: &str) -> String {

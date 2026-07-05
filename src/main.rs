@@ -1,4 +1,5 @@
 mod archive;
+mod archive_qa;
 mod config;
 mod eval;
 mod matrix;
@@ -18,6 +19,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Some("eval") => eval::run_eval(&args[1..]).await,
         Some("ocr") => ocr::run_ocr(&args[1..]).await,
         Some("qa") => qa::run_qa(&args[1..]).await,
+        Some("archive-qa") => archive_qa::run_archive_qa(&args[1..]).await,
         Some("matrix") => matrix::run_matrix(&args[1..]).await,
         Some("export-session") => archive::run_export_session(&args[1..]),
         Some("help") | Some("--help") | Some("-h") | None => {
@@ -25,7 +27,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             Ok(())
         }
         Some(other) => Err(format!(
-            "unknown command `{other}`; use `render`, `render-archive`, `eval`, `ocr`, `qa`, `matrix`, or `export-session`"
+            "unknown command `{other}`; use `render`, `render-archive`, `eval`, `ocr`, `qa`, `archive-qa`, `matrix`, or `export-session`"
         )
         .into()),
     }
@@ -44,6 +46,9 @@ fn print_help() {
         "  cargo run -- ocr --image <image.png> --source <source.txt> --prompt <prompt.txt> --out <transcript.txt> --max-tokens <n>"
     );
     println!("  cargo run -- qa --image <image.png> --qa <qa.json> --out <results.jsonl>");
+    println!(
+        "  cargo run -- archive-qa --text <archive.txt>|--images-dir <frames-dir> --qa <qa.json> --out <results.jsonl>"
+    );
     println!(
         "  cargo run -- matrix --text <input.txt> --matrix <variants.json> --probes <probes.json> --out <run-dir>"
     );

@@ -45,6 +45,31 @@ pub fn image_data_url(path: &str) -> Result<String, Box<dyn Error>> {
     Ok(format!("data:{mime};base64,{}", BASE64.encode(bytes)))
 }
 
+pub async fn complete_images(
+    client: &Client,
+    config: &EvalConfig,
+    image_urls: &[String],
+    question: &str,
+    max_tokens: u32,
+) -> Result<String, Box<dyn Error>> {
+    let mut content = Vec::with_capacity(image_urls.len() + 1);
+    content.push(json!({ "type": "text", "text": question }));
+    for image_url in image_urls {
+        content.push(json!({ "type": "image_url", "image_url": { "url": image_url } }));
+    }
+    complete_content(client, config, content, max_tokens).await
+}
+
+pub async fn complete_text(
+    client: &Client,
+    config: &EvalConfig,
+    prompt: &str,
+    max_tokens: u32,
+) -> Result<String, Box<dyn Error>> {
+    let content = prompt.to_string();
+    complete_content(client, config, content, max_tokens).await
+}
+
 pub async fn complete_image(
     client: &Client,
     config: &EvalConfig,
@@ -52,15 +77,25 @@ pub async fn complete_image(
     question: &str,
     max_tokens: u32,
 ) -> Result<String, Box<dyn Error>> {
+    let content = vec![
+        json!({ "type": "text", "text": question }),
+        json!({ "type": "image_url", "image_url": { "url": image_url } }),
+    ];
+    complete_content(client, config, content, max_tokens).await
+}
+
+async fn complete_content<T: serde::Serialize>(
+    client: &Client,
+    config: &EvalConfig,
+    content: T,
+    max_tokens: u32,
+) -> Result<String, Box<dyn Error>> {
     let url = format!("{}/chat/completions", config.base_url.trim_end_matches('/'));
     let body = json!({
         "model": config.model,
         "messages": [{
             "role": "user",
-            "content": [
-                { "type": "text", "text": question },
-                { "type": "image_url", "image_url": { "url": image_url } }
-            ]
+            "content": content
         }],
         "max_tokens": max_tokens,
         "stream": false

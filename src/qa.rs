@@ -7,22 +7,22 @@ use serde::{Deserialize, Serialize};
 use std::{cmp, error::Error, fs, io::Write, path::Path};
 
 #[derive(Debug, Deserialize)]
-struct QaItem {
-    id: String,
-    question: String,
-    golds: Vec<String>,
+pub struct QaItem {
+    pub id: String,
+    pub question: String,
+    pub golds: Vec<String>,
     #[serde(default = "default_score")]
-    score: String,
+    pub score: String,
 }
 
 #[derive(Debug, Serialize)]
-struct QaResult {
-    id: String,
-    answer: String,
-    exact_match: bool,
-    score: String,
-    f1: f64,
-    best_gold: String,
+pub struct QaResult {
+    pub id: String,
+    pub answer: String,
+    pub exact_match: bool,
+    pub score: String,
+    pub f1: f64,
+    pub best_gold: String,
 }
 
 pub async fn run_qa(args: &[String]) -> Result<(), Box<dyn Error>> {
@@ -71,7 +71,7 @@ pub async fn run_qa(args: &[String]) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn score_item(item: &QaItem, answer: String) -> QaResult {
+pub fn score_item(item: &QaItem, answer: String) -> QaResult {
     let mut best_f1 = 0.0;
     let mut best_gold = String::new();
     let exact_mode = item.score == "exact";
@@ -95,7 +95,7 @@ fn score_item(item: &QaItem, answer: String) -> QaResult {
         } else {
             char_f1(&answer_norm, &gold_norm)
         };
-        if f1 > best_f1 {
+        if best_gold.is_empty() || f1 > best_f1 {
             best_f1 = f1;
             best_gold = gold.clone();
         }
