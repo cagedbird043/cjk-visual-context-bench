@@ -1,3 +1,4 @@
+mod archive;
 mod config;
 mod eval;
 mod matrix;
@@ -17,12 +18,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Some("ocr") => ocr::run_ocr(&args[1..]).await,
         Some("qa") => qa::run_qa(&args[1..]).await,
         Some("matrix") => matrix::run_matrix(&args[1..]).await,
+        Some("export-session") => archive::run_export_session(&args[1..]),
         Some("help") | Some("--help") | Some("-h") | None => {
             print_help();
             Ok(())
         }
         Some(other) => Err(format!(
-            "unknown command `{other}`; use `render`, `eval`, `ocr`, `qa`, or `matrix`"
+            "unknown command `{other}`; use `render`, `eval`, `ocr`, `qa`, `matrix`, or `export-session`"
         )
         .into()),
     }
@@ -40,6 +42,9 @@ fn print_help() {
     println!("  cargo run -- qa --image <image.png> --qa <qa.json> --out <results.jsonl>");
     println!(
         "  cargo run -- matrix --text <input.txt> --matrix <variants.json> --probes <probes.json> --out <run-dir>"
+    );
+    println!(
+        "  cargo run -- export-session --session <session.jsonl> --compaction-index <n> --out <fixture-dir>"
     );
     println!();
     println!("Required env for eval/matrix:");

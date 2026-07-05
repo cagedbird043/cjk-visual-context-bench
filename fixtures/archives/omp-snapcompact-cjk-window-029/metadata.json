@@ -1,0 +1,17 @@
+{
+  "kind": "omp-session-compaction-window",
+  "source_session": "2026-06-21T08-11-41-506Z_019ee93c-4442-7000-945d-391de70a9016.jsonl",
+  "compaction_index": 29,
+  "start_line": 20993,
+  "end_line": 22341,
+  "event_count": 1348,
+  "message_count": 896,
+  "user_messages": 65,
+  "assistant_messages": 396,
+  "tool_results": 435,
+  "serialized_chars": 579346,
+  "source_json_chars": 3609987,
+  "tokens_before": 200998,
+  "compaction_timestamp": "2026-07-05T11:20:53.427Z",
+  "note": "Real OMP session compaction window; previous compressed archive is not folded into this source fixture."
+}
