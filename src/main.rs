@@ -39,7 +39,7 @@ fn print_help() {
     println!("Commands:");
     println!("  cargo run -- render --text <input.txt> --out <output.png> [render knobs]");
     println!(
-        "  cargo run -- render-archive --text <input.txt> --out-dir <frames-dir> --frame-size 1568 [render knobs]"
+        "  cargo run -- render-archive --text <input.txt> --out-dir <frames-dir> --frame-size 1568 [--content-width <px>] [--content-height <px>] [render knobs]"
     );
     println!("  cargo run -- eval --image <image.png> --probes <probes.json>");
     println!(

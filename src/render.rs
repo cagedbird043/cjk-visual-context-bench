@@ -32,6 +32,8 @@ pub struct ArchiveRenderManifest {
     pub source: String,
     pub compact_chars: usize,
     pub frame_size: u32,
+    pub content_width: u32,
+    pub content_height: u32,
     pub frame_count: usize,
     pub chars_per_frame: f64,
     pub font_path: String,
@@ -75,6 +77,8 @@ pub fn run_render_archive(args: &[String]) -> Result<(), Box<dyn Error>> {
     let out_dir = required_arg(args, "--out-dir")?;
     let name = arg_value(args, "--name").unwrap_or("archive").to_string();
     let frame_size = parse_arg(args, "--frame-size", 1568.0)? as u32;
+    let content_width = parse_arg(args, "--content-width", frame_size as f32)? as u32;
+    let content_height = parse_arg(args, "--content-height", frame_size as f32)? as u32;
     let text = compact_archive_text(&fs::read_to_string(text_path)?);
     let variant = RenderVariant {
         name: name.clone(),
@@ -87,7 +91,15 @@ pub fn run_render_archive(args: &[String]) -> Result<(), Box<dyn Error>> {
         max_width: frame_size as f32,
         margin: parse_arg(args, "--margin", 8.0)?,
     };
-    let manifest = render_archive_frames(out_dir, text_path, &text, frame_size, &variant)?;
+    let manifest = render_archive_frames(
+        out_dir,
+        text_path,
+        &text,
+        frame_size,
+        content_width,
+        content_height,
+        &variant,
+    )?;
     println!(
         "rendered archive {} frames={} chars={} chars/frame={:.1}",
         manifest.name, manifest.frame_count, manifest.compact_chars, manifest.chars_per_frame
@@ -100,6 +112,8 @@ pub fn render_archive_frames(
     source: &str,
     text: &str,
     frame_size: u32,
+    content_width: u32,
+    content_height: u32,
     variant: &RenderVariant,
 ) -> Result<ArchiveRenderManifest, Box<dyn Error>> {
     fs::create_dir_all(out_dir)?;
@@ -108,8 +122,10 @@ pub fn render_archive_frames(
     let scale = Scale::uniform(variant.font_size);
     let v_metrics = font.v_metrics(scale);
     let line_height = (v_metrics.ascent - v_metrics.descent).ceil() + variant.line_spacing;
-    let right_limit = frame_size as f32 - variant.margin;
-    let bottom_limit = frame_size as f32 - variant.margin;
+    let right_limit =
+        (variant.margin + content_width as f32).min(frame_size as f32 - variant.margin);
+    let bottom_limit =
+        (variant.margin + content_height as f32).min(frame_size as f32 - variant.margin);
     let compact_chars = text.chars().count();
     let mut frames = Vec::new();
     let mut image = GrayImage::from_pixel(frame_size, frame_size, Luma([255]));
@@ -165,6 +181,8 @@ pub fn render_archive_frames(
         source: source.to_string(),
         compact_chars,
         frame_size,
+        content_width,
+        content_height,
         frame_count,
         chars_per_frame,
         font_path: variant.font_path.clone(),

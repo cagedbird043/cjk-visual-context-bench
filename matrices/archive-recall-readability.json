@@ -1,0 +1,35 @@
+[
+  {
+    "name": "zpix12-t035-l1-f2000-c1800",
+    "font_path": "fonts/zpix.ttf",
+    "font_size": 12.0,
+    "threshold": 0.35,
+    "line_spacing": 1.0,
+    "frame_size": 2000,
+    "content_width": 1800,
+    "content_height": 1800,
+    "margin": 8.0
+  },
+  {
+    "name": "zpix12-t035-l1-f2000-c1600",
+    "font_path": "fonts/zpix.ttf",
+    "font_size": 12.0,
+    "threshold": 0.35,
+    "line_spacing": 1.0,
+    "frame_size": 2000,
+    "content_width": 1600,
+    "content_height": 1600,
+    "margin": 8.0
+  },
+  {
+    "name": "zpix12-t035-l1-f2000-c1400",
+    "font_path": "fonts/zpix.ttf",
+    "font_size": 12.0,
+    "threshold": 0.35,
+    "line_spacing": 1.0,
+    "frame_size": 2000,
+    "content_width": 1400,
+    "content_height": 1400,
+    "margin": 8.0
+  }
+]
